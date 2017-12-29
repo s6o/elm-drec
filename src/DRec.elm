@@ -164,9 +164,10 @@ fieldType dfield =
 type DError
     = DecodingFailed String
     | DuplicateField String
-    | MissingField String
+    | MissingValue String
     | NoSchema
     | TypeMismatch String
+    | UknownField String
 
 
 {-| Create an empty `DRec`.
@@ -239,7 +240,7 @@ set field toValue value rr =
             of
                 Nothing ->
                     field
-                        |> MissingField
+                        |> UknownField
                         |> Err
 
                 Just dt ->
@@ -266,15 +267,24 @@ get field rr =
 
         Ok (DRec r) ->
             case
-                Dict.get field r.store
+                Dict.get field r.schema
             of
                 Nothing ->
                     field
-                        |> MissingField
+                        |> UknownField
                         |> Err
 
-                Just dfield ->
-                    Ok dfield
+                Just _ ->
+                    case
+                        Dict.get field r.store
+                    of
+                        Nothing ->
+                            field
+                                |> MissingValue
+                                |> Err
+
+                        Just dfield ->
+                            Ok dfield
 
 
 {-| Check if a schema has been specified.
