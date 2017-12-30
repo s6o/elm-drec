@@ -5,6 +5,7 @@ module DRec
         , DRec
         , DType(..)
         , DValue(..)
+        , decoder
         , empty
         , field
         , fromBool
@@ -52,7 +53,7 @@ decoding from and to JSON.
 
 ## JSON interop
 
-@docs fromObject, fromStringObject, toObject
+@docs decoder, fromObject, fromStringObject, toObject
 
 
 # Query
@@ -199,7 +200,7 @@ empty =
 {-| Define `DRec` schema when initializing your application's model member.
 
     type alias Model =
-        { user : DRec
+        { user : Result DError DRec
         }
 
     init : Model
@@ -597,10 +598,10 @@ fieldDecoder fname dtype =
                 |> Json.Decode.map fromString
 
 
-{-| @private
+{-| Create decoder for specified `DRec`.
 -}
-drecDecoder : DRec -> Decoder DRec
-drecDecoder (DRec r) =
+decoder : DRec -> Decoder DRec
+decoder (DRec r) =
     r.schema
         |> Dict.foldl (\fname dtype accum -> fieldDecoder fname dtype :: accum) []
         |> (\decoders ->
@@ -628,7 +629,7 @@ fromObject rr json =
 
         Ok drec ->
             if hasSchema rr then
-                Json.Decode.decodeValue (drecDecoder drec) json
+                Json.Decode.decodeValue (decoder drec) json
                     |> Result.mapError DecodingFailed
             else
                 Err NoSchema
@@ -644,7 +645,7 @@ fromStringObject rr json =
 
         Ok drec ->
             if hasSchema rr then
-                Json.Decode.decodeString (drecDecoder drec) json
+                Json.Decode.decodeString (decoder drec) json
                     |> Result.mapError DecodingFailed
             else
                 Err NoSchema
