@@ -14,6 +14,7 @@ module DRec
         , fromMaybe
         , fromObject
         , fromString
+        , fromStringObject
         , get
         , hasSchema
         , isEmpty
@@ -36,6 +37,11 @@ decoding from and to JSON (`Json.Encode.Value`).
 @docs DType, DValue, DRec, DField, DError, empty, field, set
 
 
+## JSON interop
+
+@docs fromObject, fromStringObject toObject
+
+
 # Query
 
 @docs get, hasSchema, isEmpty
@@ -53,11 +59,6 @@ Decode from Elm types.
 @docs toBool, toFloat, toInt, toJson, toMaybe, toString
 
 Encode to Elm types.
-
-
-# JSON interop
-
-@docs fromObject, toObject
 
 -}
 
@@ -549,7 +550,7 @@ drecDecoder (DRec r) =
         |> Json.Decode.map (\d -> { r | store = d } |> DRec)
 
 
-{-| Initialize `DRec` store/data by decoding specified JSON accordingly to `DRec` schema.
+{-| Initialize `DRec` data by decoding specified JSON (`Json.Encode.Value`) accordingly to `DRec` schema.
 -}
 fromObject : Result DError DRec -> Json.Encode.Value -> Result DError DRec
 fromObject rr json =
@@ -560,6 +561,22 @@ fromObject rr json =
         Ok drec ->
             if hasSchema rr then
                 Json.Decode.decodeValue (drecDecoder drec) json
+                    |> Result.mapError DecodingFailed
+            else
+                Err NoSchema
+
+
+{-| Initialize `DRec` data by decoding specified JSON string literal accordingly to `DRec` schema.
+-}
+fromStringObject : Result DError DRec -> String -> Result DError DRec
+fromStringObject rr json =
+    case rr of
+        Err x ->
+            Err x
+
+        Ok drec ->
+            if hasSchema rr then
+                Json.Decode.decodeString (drecDecoder drec) json
                     |> Result.mapError DecodingFailed
             else
                 Err NoSchema
