@@ -5,6 +5,7 @@ module DRec
         , DRec
         , DType(..)
         , DValue(..)
+        , clear
         , decoder
         , empty
         , field
@@ -48,7 +49,7 @@ decoding from and to JSON.
 
 ## Values
 
-@docs setBool, setFloat, setInt, setJson, setString, setWith
+@docs clear, setBool, setFloat, setInt, setJson, setString, setWith
 
 
 ## JSON interop
@@ -246,6 +247,19 @@ field field dtype rr =
                             field
                                 |> DuplicateField
                                 |> Err
+
+
+{-| Remove all data from `DRec`, schema is not affected.
+-}
+clear : Result DError DRec -> Result DError DRec
+clear rr =
+    case rr of
+        Err x ->
+            Err x
+
+        Ok (DRec r) ->
+            DRec { r | store = Dict.empty }
+                |> Ok
 
 
 {-| Set a `Bool` value for specified `DRec` field.
