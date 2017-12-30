@@ -18,7 +18,12 @@ module DRec
         , get
         , hasSchema
         , isEmpty
-        , set
+        , setBool
+        , setFloat
+        , setInt
+        , setJson
+        , setString
+        , setWith
         , toBool
         , toFloat
         , toInt
@@ -29,17 +34,25 @@ module DRec
         )
 
 {-| Elm `Dict` based record with field name and type validation and automatic
-decoding from and to JSON (`Json.Encode.Value`).
+decoding from and to JSON.
 
 
 # Build
 
-@docs DType, DValue, DRec, DField, DError, empty, field, set
+
+## Schema
+
+@docs DType, DValue, DRec, DField, DError, empty, field
+
+
+## Values
+
+@docs setBool, setFloat, setInt, setJson, setString, setWith
 
 
 ## JSON interop
 
-@docs fromObject, fromStringObject toObject
+@docs fromObject, fromStringObject, toObject
 
 
 # Query
@@ -165,6 +178,7 @@ fieldType dfield =
 type DError
     = DecodingFailed String
     | DuplicateField String
+    | InvalidSchemaType String
     | MissingValue String
     | NoSchema
     | TypeMismatch String
@@ -201,36 +215,90 @@ empty =
 -}
 field : String -> DType -> Result DError DRec -> Result DError DRec
 field field dtype rr =
-    case rr of
-        Err x ->
-            Err x
+    let
+        typeError dt =
+            Basics.toString dtype
+                |> InvalidSchemaType
+                |> Err
+    in
+    case dtype of
+        DNever ->
+            typeError dtype
 
-        Ok (DRec r) ->
-            case
-                Dict.get field r.schema
-            of
-                Nothing ->
-                    DRec { r | schema = Dict.insert field dtype r.schema }
-                        |> Ok
+        DMaybe VNil ->
+            typeError dtype
 
-                Just _ ->
-                    field
-                        |> DuplicateField
-                        |> Err
+        _ ->
+            case rr of
+                Err x ->
+                    Err x
+
+                Ok (DRec r) ->
+                    case
+                        Dict.get field r.schema
+                    of
+                        Nothing ->
+                            DRec { r | schema = Dict.insert field dtype r.schema }
+                                |> Ok
+
+                        Just _ ->
+                            field
+                                |> DuplicateField
+                                |> Err
 
 
-{-| Set a value for specified `DRec` field.
+{-| Set a `Bool` value for specified `DRec` field.
+-}
+setBool : String -> Bool -> Result DError DRec -> Result DError DRec
+setBool field value rr =
+    setWith field fromBool value rr
+
+
+{-| Set a `Float` value for specified `DRec` field.
+-}
+setFloat : String -> Float -> Result DError DRec -> Result DError DRec
+setFloat field value rr =
+    setWith field fromFloat value rr
+
+
+{-| Set a `Int` value for specified `DRec` field.
+-}
+setInt : String -> Int -> Result DError DRec -> Result DError DRec
+setInt field value rr =
+    setWith field fromInt value rr
+
+
+{-| Set a `Json.Encode.Value` value for specified `DRec` field.
+-}
+setJson : String -> Json.Encode.Value -> Result DError DRec -> Result DError DRec
+setJson field value rr =
+    setWith field fromJson value rr
+
+
+{-| Set a `String` value for specified `DRec` field.
+-}
+setString : String -> String -> Result DError DRec -> Result DError DRec
+setString field value rr =
+    setWith field fromString value rr
+
+
+{-| Set a value for specified `DRec` field with a custom value conversion/validation.
 
     update : Msg -> Model -> (Model, Cmd Msg)
     update msg model =
         Email str ->
-            ( { model | user = DRec.set "email" DRec.fromString str model.user }
+            ( { model | user = DRec.setString "email" str model.user }
+            , Cmd.none
+            )
+
+        Token mstr ->
+            ( { model | user = DRec.setWith "token" (DRec.fromMaybe DRec.fromString) mstr model.user}
             , Cmd.none
             )
 
 -}
-set : String -> (a -> DField) -> a -> Result DError DRec -> Result DError DRec
-set field toValue value rr =
+setWith : String -> (a -> DField) -> a -> Result DError DRec -> Result DError DRec
+setWith field toValue value rr =
     case rr of
         Err x ->
             Err x
@@ -433,7 +501,7 @@ toJson rf =
                         |> Err
 
 
-{-| Convert from a `DField` of `DType` 'DMaybe' to `Maybe a`.
+{-| Convert from a `DField` of `DType` 'DMaybe a' to `Maybe a`.
 
     rec : DRec
     rec =
