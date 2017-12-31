@@ -8,6 +8,7 @@ module DRec
         , clear
         , decoder
         , empty
+        , errorMessage
         , field
         , fromBool
         , fromFloat
@@ -44,7 +45,7 @@ decoding from and to JSON.
 
 ## Schema
 
-@docs DType, DValue, DRec, DField, DError, empty, field
+@docs DType, DValue, DRec, DField, DError, empty, errorMessage, field
 
 
 ## Values
@@ -196,6 +197,38 @@ empty =
         , store = Dict.empty
         }
         |> Ok
+
+
+{-| Get error message.
+-}
+errorMessage : Result DError DRec -> Maybe String
+errorMessage rr =
+    case rr of
+        Ok _ ->
+            Nothing
+
+        Err de ->
+            case de of
+                DecodingFailed msg ->
+                    Just ("Decoding failed | " ++ msg)
+
+                DuplicateField msg ->
+                    Just ("Duplicate field | " ++ msg)
+
+                InvalidSchemaType msg ->
+                    Just ("Invalid schema type | " ++ msg)
+
+                MissingValue msg ->
+                    Just ("Missing value | " ++ msg)
+
+                NoSchema ->
+                    Just "No schema"
+
+                TypeMismatch msg ->
+                    Just ("Type mismatch | " ++ msg)
+
+                UknownField msg ->
+                    Just ("Unknown field | " ++ msg)
 
 
 {-| Define `DRec` schema when initializing your application's model member.
@@ -614,23 +647,33 @@ fieldDecoder fname dtype =
 
 {-| Create decoder for specified `DRec`.
 -}
-decoder : DRec -> Decoder DRec
-decoder (DRec r) =
-    r.schema
-        |> Dict.foldl (\fname dtype accum -> fieldDecoder fname dtype :: accum) []
-        |> (\decoders ->
-                let
-                    first =
-                        List.head decoders
-                            |> Maybe.withDefault (Json.Decode.fail "DRec schema empty.")
+decoder : Result DError DRec -> Decoder DRec
+decoder rr =
+    case rr of
+        Err _ ->
+            errorMessage rr
+                |> Maybe.map Json.Decode.fail
+                |> Maybe.withDefault
+                    ("DRec decoder failure. Looks like you managed to break elm-drec logic, please make a report."
+                        |> Json.Decode.fail
+                    )
 
-                    rest =
-                        List.drop 1 decoders
-                in
-                List.foldl (\dcdr accum -> Json.Decode.andThen Json.Decode.succeed dcdr) first decoders
-           )
-        |> (\decoder -> Json.Decode.Extra.dict2 Json.Decode.string decoder)
-        |> Json.Decode.map (\d -> { r | store = d } |> DRec)
+        Ok (DRec r) ->
+            r.schema
+                |> Dict.foldl (\fname dtype accum -> fieldDecoder fname dtype :: accum) []
+                |> (\decoders ->
+                        let
+                            first =
+                                List.head decoders
+                                    |> Maybe.withDefault (Json.Decode.fail "DRec schema empty.")
+
+                            rest =
+                                List.drop 1 decoders
+                        in
+                        List.foldl (\dcdr accum -> Json.Decode.andThen Json.Decode.succeed dcdr) first decoders
+                   )
+                |> (\decoder -> Json.Decode.Extra.dict2 Json.Decode.string decoder)
+                |> Json.Decode.map (\d -> { r | store = d } |> DRec)
 
 
 {-| Initialize `DRec` data by decoding specified JSON (`Json.Encode.Value`) accordingly to `DRec` schema.
@@ -643,7 +686,7 @@ fromObject rr json =
 
         Ok drec ->
             if hasSchema rr then
-                Json.Decode.decodeValue (decoder drec) json
+                Json.Decode.decodeValue (decoder rr) json
                     |> Result.mapError DecodingFailed
             else
                 Err NoSchema
@@ -659,7 +702,7 @@ fromStringObject rr json =
 
         Ok drec ->
             if hasSchema rr then
-                Json.Decode.decodeString (decoder drec) json
+                Json.Decode.decodeString (decoder rr) json
                     |> Result.mapError DecodingFailed
             else
                 Err NoSchema
