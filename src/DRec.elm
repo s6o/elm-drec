@@ -80,7 +80,6 @@ Encode to Elm types.
 
 import Dict exposing (Dict)
 import Json.Decode exposing (Decoder)
-import Json.Decode.Extra
 import Json.Encode
 
 
@@ -114,7 +113,8 @@ type DValue
 -}
 type DRec
     = DRec
-        { schema : Dict String DType
+        { fields : List String
+        , schema : Dict String DType
         , store : Dict String DField
         }
 
@@ -193,7 +193,8 @@ type DError
 empty : Result DError DRec
 empty =
     DRec
-        { schema = Dict.empty
+        { fields = []
+        , schema = Dict.empty
         , store = Dict.empty
         }
         |> Ok
@@ -273,7 +274,11 @@ field field dtype rr =
                         Dict.get field r.schema
                     of
                         Nothing ->
-                            DRec { r | schema = Dict.insert field dtype r.schema }
+                            DRec
+                                { r
+                                    | fields = r.fields ++ [ field ]
+                                    , schema = Dict.insert field dtype r.schema
+                                }
                                 |> Ok
 
                         Just _ ->
@@ -614,35 +619,94 @@ toString rf =
 
 {-| @private
 -}
-fieldDecoder : String -> DType -> Decoder DField
-fieldDecoder fname dtype =
+fieldDecoder : String -> DType -> DRec -> Decoder DRec
+fieldDecoder fname dtype drec =
     case dtype of
         DNever ->
             Json.Decode.fail "DNever is never decoded."
 
+        DMaybe VNil ->
+            Json.Decode.fail "DMaybe VNil is never decoded."
+
         DBool ->
             Json.Decode.field fname Json.Decode.bool
-                |> Json.Decode.map fromBool
+                |> Json.Decode.map
+                    (\v ->
+                        setWith fname fromBool v (Ok drec)
+                            |> Result.withDefault drec
+                    )
 
         DFloat ->
             Json.Decode.field fname Json.Decode.float
-                |> Json.Decode.map fromFloat
+                |> Json.Decode.map
+                    (\v ->
+                        setWith fname fromFloat v (Ok drec)
+                            |> Result.withDefault drec
+                    )
 
         DInt ->
             Json.Decode.field fname Json.Decode.int
-                |> Json.Decode.map fromInt
+                |> Json.Decode.map
+                    (\v ->
+                        setWith fname fromInt v (Ok drec)
+                            |> Result.withDefault drec
+                    )
 
         DJson ->
             Json.Decode.field fname Json.Decode.value
-                |> Json.Decode.map fromJson
+                |> Json.Decode.map
+                    (\v ->
+                        setWith fname fromJson v (Ok drec)
+                            |> Result.withDefault drec
+                    )
 
-        DMaybe dvalue ->
-            Json.Decode.succeed True
-                |> Json.Decode.map fromBool
+        DMaybe VBool ->
+            Json.Decode.maybe (Json.Decode.field fname Json.Decode.bool)
+                |> Json.Decode.map
+                    (\vm ->
+                        setWith fname (fromMaybe fromBool) vm (Ok drec)
+                            |> Result.withDefault drec
+                    )
+
+        DMaybe VFloat ->
+            Json.Decode.maybe (Json.Decode.field fname Json.Decode.float)
+                |> Json.Decode.map
+                    (\vm ->
+                        setWith fname (fromMaybe fromFloat) vm (Ok drec)
+                            |> Result.withDefault drec
+                    )
+
+        DMaybe VInt ->
+            Json.Decode.maybe (Json.Decode.field fname Json.Decode.int)
+                |> Json.Decode.map
+                    (\vm ->
+                        setWith fname (fromMaybe fromInt) vm (Ok drec)
+                            |> Result.withDefault drec
+                    )
+
+        DMaybe VJson ->
+            Json.Decode.maybe (Json.Decode.field fname Json.Decode.value)
+                |> Json.Decode.map
+                    (\vm ->
+                        setWith fname (fromMaybe fromJson) vm (Ok drec)
+                            |> Result.withDefault drec
+                    )
+
+        DMaybe VString ->
+            Json.Decode.maybe (Json.Decode.field fname Json.Decode.string)
+                |> Json.Decode.map
+                    (\vm ->
+                        setWith fname (fromMaybe fromString) vm (Ok drec)
+                            |> Result.withDefault drec
+                    )
 
         DString ->
             Json.Decode.field fname Json.Decode.string
-                |> Json.Decode.map fromString
+                |> Json.Decode.map
+                    (\v ->
+                        setWith fname fromString v (Ok drec)
+                            |> Result.withDefault drec
+                    )
 
 
 {-| Create decoder for specified `DRec`.
@@ -659,21 +723,14 @@ decoder rr =
                     )
 
         Ok (DRec r) ->
-            r.schema
-                |> Dict.foldl (\fname dtype accum -> fieldDecoder fname dtype :: accum) []
-                |> (\decoders ->
-                        let
-                            first =
-                                List.head decoders
-                                    |> Maybe.withDefault (Json.Decode.fail "DRec schema empty.")
-
-                            rest =
-                                List.drop 1 decoders
-                        in
-                        List.foldl (\dcdr accum -> Json.Decode.andThen Json.Decode.succeed dcdr) first decoders
-                   )
-                |> (\decoder -> Json.Decode.Extra.dict2 Json.Decode.string decoder)
-                |> Json.Decode.map (\d -> { r | store = d } |> DRec)
+            r.fields
+                |> List.foldl
+                    (\fname accum ->
+                        Dict.get fname r.schema
+                            |> Maybe.map (\dtype -> Json.Decode.andThen (fieldDecoder fname dtype) accum)
+                            |> Maybe.withDefault accum
+                    )
+                    (DRec r |> Json.Decode.succeed)
 
 
 {-| Initialize `DRec` data by decoding specified JSON (`Json.Encode.Value`) accordingly to `DRec` schema.
@@ -717,62 +774,67 @@ toObject rr =
             Json.Encode.object []
 
         Ok (DRec r) ->
-            r.store
-                |> Dict.foldl
-                    (\field dfield accum ->
-                        case dfield of
-                            DBool_ b ->
-                                ( field, Json.Encode.bool b ) :: accum
+            r.fields
+                |> List.foldr
+                    (\field accum ->
+                        Dict.get field r.store
+                            |> Maybe.map
+                                (\dfield ->
+                                    case dfield of
+                                        DBool_ b ->
+                                            ( field, Json.Encode.bool b ) :: accum
 
-                            DFloat_ f ->
-                                ( field, Json.Encode.float f ) :: accum
+                                        DFloat_ f ->
+                                            ( field, Json.Encode.float f ) :: accum
 
-                            DInt_ i ->
-                                ( field, Json.Encode.int i ) :: accum
+                                        DInt_ i ->
+                                            ( field, Json.Encode.int i ) :: accum
 
-                            DJson_ v ->
-                                ( field, v ) :: accum
+                                        DJson_ v ->
+                                            ( field, v ) :: accum
 
-                            DMaybe_ mv ->
-                                case mv of
-                                    Nothing ->
-                                        accum
+                                        DMaybe_ mv ->
+                                            case mv of
+                                                Nothing ->
+                                                    accum
 
-                                    Just df ->
-                                        case fieldType df of
-                                            DMaybe VNil ->
-                                                ( field, Json.Encode.null ) :: accum
+                                                Just df ->
+                                                    case fieldType df of
+                                                        DMaybe VNil ->
+                                                            ( field, Json.Encode.null ) :: accum
 
-                                            DMaybe VBool ->
-                                                toBool (Ok df)
-                                                    |> Result.map (\v -> ( field, Json.Encode.bool v ) :: accum)
-                                                    |> Result.withDefault accum
+                                                        DMaybe VBool ->
+                                                            toBool (Ok df)
+                                                                |> Result.map (\v -> ( field, Json.Encode.bool v ) :: accum)
+                                                                |> Result.withDefault accum
 
-                                            DMaybe VFloat ->
-                                                toFloat (Ok df)
-                                                    |> Result.map (\v -> ( field, Json.Encode.float v ) :: accum)
-                                                    |> Result.withDefault accum
+                                                        DMaybe VFloat ->
+                                                            toFloat (Ok df)
+                                                                |> Result.map (\v -> ( field, Json.Encode.float v ) :: accum)
+                                                                |> Result.withDefault accum
 
-                                            DMaybe VInt ->
-                                                toInt (Ok df)
-                                                    |> Result.map (\v -> ( field, Json.Encode.int v ) :: accum)
-                                                    |> Result.withDefault accum
+                                                        DMaybe VInt ->
+                                                            toInt (Ok df)
+                                                                |> Result.map (\v -> ( field, Json.Encode.int v ) :: accum)
+                                                                |> Result.withDefault accum
 
-                                            DMaybe VJson ->
-                                                toJson (Ok df)
-                                                    |> Result.map (\v -> ( field, v ) :: accum)
-                                                    |> Result.withDefault accum
+                                                        DMaybe VJson ->
+                                                            toJson (Ok df)
+                                                                |> Result.map (\v -> ( field, v ) :: accum)
+                                                                |> Result.withDefault accum
 
-                                            DMaybe VString ->
-                                                toString (Ok df)
-                                                    |> Result.map (\v -> ( field, Json.Encode.string v ) :: accum)
-                                                    |> Result.withDefault accum
+                                                        DMaybe VString ->
+                                                            toString (Ok df)
+                                                                |> Result.map (\v -> ( field, Json.Encode.string v ) :: accum)
+                                                                |> Result.withDefault accum
 
-                                            _ ->
-                                                accum
+                                                        _ ->
+                                                            accum
 
-                            DString_ s ->
-                                ( field, Json.Encode.string s ) :: accum
+                                        DString_ s ->
+                                            ( field, Json.Encode.string s ) :: accum
+                                )
+                            |> Maybe.withDefault accum
                     )
                     []
                 |> Json.Encode.object
