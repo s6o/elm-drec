@@ -427,7 +427,7 @@ isEmpty : Result DError DRec -> Bool
 isEmpty rr =
     case rr of
         Err _ ->
-            False
+            True
 
         Ok (DRec r) ->
             Dict.isEmpty r.store
