@@ -418,7 +418,7 @@ hasSchema rr =
             False
 
         Ok (DRec r) ->
-            Dict.isEmpty r.schema
+            not <| Dict.isEmpty r.schema
 
 
 {-| Check is specified `DRec` contains data.
