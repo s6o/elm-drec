@@ -15,10 +15,11 @@ record when working with something like PostgREST <https://github.com/begriffs/p
 
 ### Supported value types
   * Bool
+  * DRec (nesting / sub-records)
   * Float
   * Int
   * Json.Encode.Value
-  * Maybe (Bool, Float, Int, Json.Encode.Value, String)
+  * Maybe (Bool, DRec, Float, Int, Json.Encode.Value, String)
   * String
 
 ## TODO:
