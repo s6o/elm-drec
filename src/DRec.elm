@@ -980,59 +980,5 @@ objectField field accum dfield =
                 Just df ->
                     objectField field accum df
 
-        {- }
-           case Debug.log "Maybe type" (fieldType df) of
-               DMaybe VNil ->
-                   ( field, Json.Encode.null ) :: accum
-
-               DMaybe VBool ->
-                   toBool (Ok df)
-                       |> Result.map (\v -> ( field, Json.Encode.bool v ) :: accum)
-                       |> Result.withDefault accum
-
-               DMaybe (VDRec _) ->
-                   let
-                       sdrec =
-                           toDRec (Ok df)
-                   in
-                   case sdrec of
-                       Err _ ->
-                           let
-                               dbgMsg msg =
-                                   errorMessage sdrec
-                                       |> Maybe.map (\m -> msg ++ " | " ++ m)
-                                       |> Maybe.withDefault ""
-
-                               _ =
-                                   Debug.log (dbgMsg <| "Nested `DRec` failure for field: " ++ field) sdrec
-                           in
-                           ( field, Json.Encode.null ) :: accum
-
-                       Ok dr ->
-                           ( field, subObject dr ) :: accum
-
-               DMaybe VFloat ->
-                   toFloat (Ok df)
-                       |> Result.map (\v -> ( field, Json.Encode.float v ) :: accum)
-                       |> Result.withDefault accum
-
-               DMaybe VInt ->
-                   toInt (Ok df)
-                       |> Result.map (\v -> ( field, Json.Encode.int v ) :: accum)
-                       |> Result.withDefault accum
-
-               DMaybe VJson ->
-                   toJson (Ok df)
-                       |> Result.map (\v -> ( field, v ) :: accum)
-                       |> Result.withDefault accum
-
-               DMaybe VString ->
-                   toString (Ok df)
-                       |> Result.map (\v -> ( field, Json.Encode.string v ) :: accum)
-                       |> Result.withDefault accum
-
-               _ ->
-                   Debug.log "Fishy..." accum
-        -}
         DString_ s ->
             ( field, Json.Encode.string s ) :: accum
