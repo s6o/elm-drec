@@ -15,18 +15,18 @@ decoding and encoding based on `DRec`'s schema.
   * automatic schema based decoding and encoding from and to JSON
   * extensible records (new fields can be added if data is present)
   * No reliance on `Debug.crash`, `Result x a` is used instead
+  * `Dict comparable v` and `Set comparable` member support excluded,
+    due to sum types not being `comparable` (at present an impl. limitation)
 
 ### Supported types
   * Array (Bool, DRec, Float, Int, Json.Encode.Value, String)
   * Bool
-  * TODO: Dict (Float, Int, String) (Bool, DRec, Float, Int, Json.Encode.Value, String)
   * DRec (nesting / sub-records)
   * Float
   * Int
   * Json.Encode.Value
-  * TODO: List (Bool, DRec, Float, Int, Json.Encode.Value, String)
+  * List (Bool, DRec, Float, Int, Json.Encode.Value, String)
   * Maybe (Bool, DRec, Float, Int, Json.Encode.Value, String)
-  * TODO: Set (Bool, DRec, Float, Int, Json.Encode.Value, String)
   * String
 
 ## Usage examples
