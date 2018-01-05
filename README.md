@@ -31,12 +31,18 @@ decoding and encoding based on `DRec`'s schema.
 
 ## Usage examples
 
-### Initialization
+### Schema
 ```
 Elm record                                  elm-drec
 
 import Array exposing (Array)               import Dict exposing (Dict)
-import Dict exposing (Dict)                 import DRec exposing (DError, DRec, DType(..), DValue(..), empty, field, schema)
+import Dict exposing (Dict)                 import DRec
+                                                exposing
+                                                    ( DError
+                                                    , DRec
+                                                    , DType(..)
+                                                    , DValue(..)
+                                                    , empty, field, schema)
 
 type alias Address =                        address : Result DError DRec
     { streetName : String                   address =
@@ -152,7 +158,13 @@ encoder c =
         , ( "address", encoderA c.address )
         ]
 
-
-encoderC customerInstance                   DRec.encoder customerInstance
-    |> Json.Encode.encode 0                     |> Json.Encode.encode 0
+stringify : Int -> Model -> String
+stringify id model =
+    model.customers
+        |> Dict.get id
+        |> Maybe.map
+            (\c ->                              (\drec ->
+                encoderC c                          DRec.encoder drec
+                    |> Json.Encode.encode 0             |> Json.Encode.encode 0
+            )                                   )
 ```
