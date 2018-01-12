@@ -13,10 +13,12 @@ decoding and encoding based on `DRec`'s schema.
 ## Features / Trade-offs
   * schema based runtime field name and type validation
   * automatic schema based decoding and encoding from and to JSON
+  * user input buffering (partial input validation failure handling)
   * extensible records (new fields can be added if data is present)
   * No reliance on `Debug.crash`, `Result x a` is used instead
   * `Dict comparable v` and `Set comparable` member support excluded,
     due to sum types not being `comparable` (at present an impl. limitation)
+  * Custom types are supported via serialization to/from JSON (`Json.Encode.Value`)
 
 ### Supported types
   * Array (Bool, DRec, Float, Int, Json.Encode.Value, String)
@@ -44,7 +46,7 @@ import Dict exposing (Dict)                 import DRec
                                                     , DValue(..)
                                                     , empty, field, schema)
 
-type alias Address =                        address : Result DError DRec
+type alias Address =                        address : DRec
     { streetName : String                   address =
     , buildingNumer : Int                       empty
     , subNumber : Maybe Int                         |> field "street_name" DString
@@ -52,7 +54,7 @@ type alias Address =                        address : Result DError DRec
     }                                               |> field "sub_number" (DMaybe VInt)
                                                     |> field "delivery_days" (DArray VInt)
 
-type alias Customer =                       customer : Result DError DRec
+type alias Customer =                       customer : DRec
     { id : Int                              customer =
     , name : String                             empty
     , address : Address                             |> field "id" DInt
@@ -60,7 +62,7 @@ type alias Customer =                       customer : Result DError DRec
                                                     |> field "address" (DDRec <| schema address)
 
 type alias Model =                          type alias Model =
-    { customers : Dict Int Customer             { customers : Dict Int (Result DError DRec)
+    { customers : Dict Int Customer             { customers : Dict Int DRec
     }                                           }
 ```
 
@@ -100,18 +102,19 @@ init =
             }
             """
     in
-    { customers =
-        Json.Decode.decodeString                    DRec.decodeString
-            customerDecoder                             customer
-            json                                        json
-                |> Result.map                               |> Result.map
-                    (\c ->                                      (\drec ->
-                        Dict.insert                                 DRec.get "id" drec
-                            c.id                                        |> DRec.toInt
-                            c                                           |> Result.map (\i -> Dict.insert i (Ok drec) Dict.empty)
-                            Dict.empty                                  |> Result.withDefault Dict.empty
-                    )                                           )
-                |> Result.withDefault Dict.empty            |> Result.withDefault Dict.empty
+    { model
+        | customers =
+            Json.Decode.decodeString                    DRec.decodeString
+                customerDecoder                             customer
+                json                                        json
+                    |> Result.map                               |> Result.map
+                        (\c ->                                      (\drec ->
+                            Dict.insert                                 DRec.get "id" drec
+                                c.id                                        |> DRec.toInt
+                                c                                           |> Result.map (\i -> Dict.insert i drec Dict.empty)
+                                Dict.empty                                  |> Result.withDefault Dict.empty
+                        )                                           )
+                    |> Result.withDefault Dict.empty            |> Result.withDefault Dict.empty
     }
 ```
 
