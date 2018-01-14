@@ -421,6 +421,7 @@ setWith field toValue value (DRec r) =
                             DRec
                                 { r
                                     | buffers = Dict.remove field r.buffers
+                                    , errors = Dict.remove field r.errors
                                     , store = Dict.insert field dfield r.store
                                 }
                         else
