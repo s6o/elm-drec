@@ -44,11 +44,11 @@ import Dict exposing (Dict)                 import DRec
                                                     , DRec
                                                     , DType(..)
                                                     , DValue(..)
-                                                    , empty, field, schema)
+                                                    , init, field, schema)
 
 type alias Address =                        address : DRec
     { streetName : String                   address =
-    , buildingNumer : Int                       empty
+    , buildingNumer : Int                       init
     , subNumber : Maybe Int                         |> field "street_name" DString
     , deliveryDays : Array Int                      |> field "building_number" DInt
     }                                               |> field "sub_number" (DMaybe VInt)
@@ -56,7 +56,7 @@ type alias Address =                        address : DRec
 
 type alias Customer =                       customer : DRec
     { id : Int                              customer =
-    , name : String                             empty
+    , name : String                             init
     , address : Address                             |> field "id" DInt
     }                                               |> field "name" DString
                                                     |> field "address" (DDRec <| schema address)
