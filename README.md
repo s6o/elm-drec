@@ -46,20 +46,24 @@ import Dict exposing (Dict)                 import DRec
                                                     , DValue(..)
                                                     , init, field, schema)
 
-type alias Address =                        address : DRec
+                                            type AddressFields = StreetName | BuildingNumber | SubNumber | DeliveryDays
+
+type alias Address =                        address : DRec AddressFields
     { streetName : String                   address =
     , buildingNumer : Int                       init
-    , subNumber : Maybe Int                         |> field "street_name" DString
-    , deliveryDays : Array Int                      |> field "building_number" DInt
-    }                                               |> field "sub_number" (DMaybe VInt)
-                                                    |> field "delivery_days" (DArray VInt)
+    , subNumber : Maybe Int                         |> field StreetName DString
+    , deliveryDays : Array Int                      |> field BuildingNumber DInt
+    }                                               |> field SubNumber (DMaybe VInt)
+                                                    |> field DeliveryDays (DArray VInt)
 
-type alias Customer =                       customer : DRec
+                                            type CustomerFields = Id | Name | Address
+
+type alias Customer =                       customer : DRec CustomerFields
     { id : Int                              customer =
     , name : String                             init
-    , address : Address                             |> field "id" DInt
-    }                                               |> field "name" DString
-                                                    |> field "address" (DDRec <| schema address)
+    , address : Address                             |> field Id DInt
+    }                                               |> field Name DString
+                                                    |> field Address (DDRec <| schema address)
 
 type alias Model =                          type alias Model =
     { customers : Dict Int Customer             { customers : Dict Int DRec
