@@ -29,6 +29,7 @@ module DRec
         , hasSchema
         , hasValue
         , init
+        , initWith
         , isEmpty
         , isValid
         , isValidWith
@@ -60,7 +61,7 @@ decoding from and to JSON.
 
 ## Schema
 
-@docs DType, DValue, DRec, DSchema, DField, DError, init, field
+@docs DType, DValue, DRec, DSchema, DField, DError, init, initWith, field
 
 
 ## Values
@@ -101,6 +102,7 @@ Encode to Elm types.
 -}
 
 import Array exposing (Array)
+import Char
 import Dict exposing (Dict)
 import Json.Decode exposing (Decoder)
 import Json.Encode
@@ -268,10 +270,21 @@ type DError
     | ValidationFailed String
 
 
-{-| Initialize a `DRec` (without schema and data).
+{-| Initialize a `DRec` (without schema and data) with default ADT to `String` function.
+
+The default ADT to `String` conversion is from 'CamelCase' to 'snake_case'. To
+customize the conversion use `initWith`.
+
 -}
 init : DRec a
 init =
+    initWith toSnakeCase
+
+
+{-| Initialize a `DRec` (without schema and data) and with a custom ADT to `String` function.
+-}
+initWith : (a -> String) -> DRec a
+initWith toField =
     DRec
         { buffers = Dict.empty
         , errors = Dict.empty
@@ -279,8 +292,27 @@ init =
         , schema = Dict.empty
         , sfields = []
         , store = Dict.empty
-        , toField = Basics.toString
+        , toField = toField
         }
+
+
+{-| @private
+-}
+toSnakeCase : a -> String
+toSnakeCase adt =
+    Basics.toString adt
+        |> String.foldl
+            (\c accum ->
+                if List.isEmpty accum then
+                    Char.toLower c :: accum
+                else if Char.isUpper c then
+                    Char.toLower c :: ('_' :: accum)
+                else
+                    c :: accum
+            )
+            []
+        |> List.reverse
+        |> String.fromList
 
 
 {-| Define `DRec` schema when initializing your application's model member.
