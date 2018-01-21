@@ -7,14 +7,14 @@ When you control your backend (e.g. PostgREST <https://github.com/begriffs/postg
 or work with well formatted JSON sources, writing decoders and encoders,
 quickly becomes rather repetitive.
 
-The elm-drec library provides an alternative record type `DRec` which can provide
-decoding and encoding based on `DRec`'s schema.
+The elm-drec library provides an alternative record type `DRec a` which can
+provide decoding and encoding based on `DRec a`'s schema.
 
 ## Features / Trade-offs
-  * schema based runtime field name and type validation
+  * ADT based fields / schema
+  * schema and type validation
   * automatic schema based decoding and encoding from and to JSON
   * user input buffering (partial input validation failure handling)
-  * extensible records (new fields can be added if data is present)
   * No reliance on `Debug.crash`, `Result x a` is used instead
   * `Dict comparable v` and `Set comparable` member support excluded,
     due to sum types not being `comparable` (at present an impl. limitation)
@@ -46,9 +46,9 @@ import Dict exposing (Dict)                 import DRec
                                                     , DValue(..)
                                                     , init, field, schema)
 
-                                            type AddressFields = StreetName | BuildingNumber | SubNumber | DeliveryDays
+                                            type AddressField = StreetName | BuildingNumber | SubNumber | DeliveryDays
 
-type alias Address =                        address : DRec AddressFields
+type alias Address =                        address : DRec AddressField
     { streetName : String                   address =
     , buildingNumer : Int                       init
     , subNumber : Maybe Int                         |> field StreetName DString
@@ -56,7 +56,7 @@ type alias Address =                        address : DRec AddressFields
     }                                               |> field SubNumber (DMaybe VInt)
                                                     |> field DeliveryDays (DArray VInt)
 
-                                            type CustomerFields = Id | Name | Address
+                                            type CustomerField = Id | Name | Address
 
 type alias Customer =                       customer : DRec CustomerFields
     { id : Int                              customer =
