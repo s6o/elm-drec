@@ -34,8 +34,9 @@ provide decoding and encoding based on `DRec a`'s schema.
 ## Usage examples
 
 ### Schema
-```
-Elm record                                  elm-drec
+```elm
+-- Elm record                               elm-drec
+
 
 import Array exposing (Array)               import Dict exposing (Dict)
 import Dict exposing (Dict)                 import DRec
@@ -71,8 +72,8 @@ type alias Model =                          type alias Model =
 ```
 
 ### Decoding
-```
-Elm                                         elm-drec
+```elm
+-- Elm                                      elm-drec
 
 import Json.Decode                          import DRec
     exposing
@@ -123,8 +124,8 @@ init =
 ```
 
 ### Encoding
-```
-Elm                                         elm-drec
+```elm
+-- Elm                                      elm-drec
 
 import Array
 import Json.Encode                          import DRec
