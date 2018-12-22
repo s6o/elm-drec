@@ -43,7 +43,7 @@ error/success chain.
 These functions wrap `setWith` with a type reflected in their name. The first
 argument, as with `setWith` is the ADT specified for `DRec a`'s field names.
 
-@docs setBool, setDRec, setFloat, setInt, setJson, setString
+@docs setBool, setChar, setDRec, setFloat, setInt, setJson, setString
 
 
 ## JSON interop
@@ -65,7 +65,7 @@ Helper functions to query the state and values of a `DRec a` and of its member f
 Decode from Elm base types to `DRec a`, as you would decode from a JSON string
 to an Elm record/types.
 
-@docs fromArray, fromBool, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
+@docs fromArray, fromBool, fromChar, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
 
 
 # Encode
@@ -73,12 +73,12 @@ to an Elm record/types.
 Encode to Elm base types from a `DRec a`, as you would encode to a JSON string
 from an Elm record/types.
 
-@docs toArray, toBool, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
+@docs toArray, toBool, toChar, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
 
 -}
 
 import Array exposing (Array)
-import Char
+import Char exposing (Char)
 import Dict exposing (Dict)
 import Json.Decode exposing (Decoder)
 import Json.Encode
@@ -94,6 +94,7 @@ type DType
     = DNever
     | DArray DValue
     | DBool
+    | DChar
     | DDRec DSchema
     | DFloat
     | DInt
@@ -107,6 +108,7 @@ type DType
 -}
 type DValue
     = VBool
+    | VChar
     | VDRec DSchema
     | VFloat
     | VInt
@@ -133,6 +135,7 @@ type DRec a
 type DField a
     = DArray_ (Array (DField a))
     | DBool_ Bool
+    | DChar_ Char
     | DDRec_ (DRec a)
     | DFloat_ Float
     | DInt_ Int
@@ -170,6 +173,9 @@ fieldType fname dfield (DRec r) =
 
         DBool_ _ ->
             DBool
+
+        DChar_ _ ->
+            DChar
 
         DDRec_ (DRec sr) ->
             DDRec (DSchema ( sr.sfields, sr.schema ))
@@ -214,6 +220,9 @@ fieldSubType fname dfield drec =
     case fieldType fname dfield drec of
         DBool ->
             Just VBool
+
+        DChar ->
+            Just VChar
 
         DDRec dschema ->
             Just <| VDRec dschema
@@ -378,6 +387,13 @@ clear (DRec r) =
 setBool : a -> Bool -> DRec a -> DRec a
 setBool fld val drec =
     setWith fld (fromBool >> Just) val drec
+
+
+{-| Set a `Char` value for specified `DRec a` field.
+-}
+setChar : a -> Char -> DRec a -> DRec a
+setChar fld val drec =
+    setWith fld (fromChar >> Just) val drec
 
 
 {-| Set a sub `DRec a` for spcified `DRec a` field.
@@ -720,6 +736,13 @@ fromBool v =
     DBool_ v
 
 
+{-| Convert from `Char` to `DField a`.
+-}
+fromChar : Char -> DField a
+fromChar v =
+    DChar_ v
+
+
 {-| Convert from `DRec a` to `DField a`.
 -}
 fromDRec : DRec a -> DField a
@@ -825,6 +848,28 @@ toBool rf =
 
                 _ ->
                     "toBool"
+                        |> TypeMismatch
+                        |> Err
+
+
+{-| Convert from `DField a` to `Char`.
+-}
+toChar : Result DError (DField a) -> Result DError Char
+toChar rf =
+    case rf of
+        Err x ->
+            Err x
+
+        Ok dfield ->
+            case dfield of
+                DChar_ v ->
+                    Ok v
+
+                DMaybe_ (Just (DChar_ v)) ->
+                    Ok v
+
+                _ ->
+                    "toChar"
                         |> TypeMismatch
                         |> Err
 
@@ -1057,6 +1102,10 @@ fieldDecoder fname dtype drec =
                     Json.Decode.array Json.Decode.bool
                         |> arrayDecoder fname drec fromBool
 
+                VChar ->
+                    Json.Decode.array (Json.Decode.map Char.fromCode Json.Decode.int)
+                        |> arrayDecoder fname drec fromChar
+
                 VDRec (DSchema ( forder, stypes )) ->
                     let
                         subRec =
@@ -1093,6 +1142,10 @@ fieldDecoder fname dtype drec =
             Json.Decode.field fname Json.Decode.bool
                 |> Json.Decode.map (\v -> setWithP fname (fromBool >> Just) v drec)
 
+        DChar ->
+            Json.Decode.field fname (Json.Decode.map Char.fromCode Json.Decode.int)
+                |> Json.Decode.map (\v -> setWithP fname (fromChar >> Just) v drec)
+
         DDRec (DSchema ( forder, stypes )) ->
             let
                 subRec =
@@ -1126,6 +1179,10 @@ fieldDecoder fname dtype drec =
                 VBool ->
                     Json.Decode.list Json.Decode.bool
                         |> listDecoder fname drec fromBool
+
+                VChar ->
+                    Json.Decode.list (Json.Decode.map Char.fromCode Json.Decode.int)
+                        |> listDecoder fname drec fromChar
 
                 VDRec (DSchema ( forder, stypes )) ->
                     let
@@ -1164,6 +1221,10 @@ fieldDecoder fname dtype drec =
                 VBool ->
                     Json.Decode.maybe (Json.Decode.field fname Json.Decode.bool)
                         |> maybeDecoder fname drec fromBool
+
+                VChar ->
+                    Json.Decode.maybe (Json.Decode.field fname (Json.Decode.map Char.fromCode Json.Decode.int))
+                        |> maybeDecoder fname drec fromChar
 
                 VDRec (DSchema ( forder, stypes )) ->
                     let
@@ -1309,6 +1370,9 @@ objectField fld accum dfield =
 
         DBool_ b ->
             ( fld, Json.Encode.bool b ) :: accum
+
+        DChar_ c ->
+            ( fld, Char.toCode c |> Json.Encode.int ) :: accum
 
         DDRec_ sdrec ->
             ( fld, subObject sdrec ) :: accum
