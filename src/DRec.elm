@@ -17,43 +17,63 @@ decoding from and to JSON.
 
 ## Schema
 
+A schema is a similar construct to a regular Elm record definition. It describes
+the member fields and their types.
+
+Aschema definitions usually start with the `init` or `initWith` function,
+followed by several `field` functions piped after each other.
+
 @docs DType, DValue, DRec, DSchema, DField, DError, init, initWith, field
 
 
 ## Values
+
+`DRec a` value management provides an input buffer, input buffer validation and
+validation related error management, in addition to the traditional storage of
+values in a record's member fields.
+
+Every time a value is set it goes through an input buffer, buffer validation,
+error/success chain.
 
 @docs clear, setWith
 
 
 ### Convenience functions
 
-@docs setBool, setDRec, setFloat, setInt, setJson, setString
+These functions wrap `setWith` with a type reflected in their name. The first
+argument, as with `setWith` is the ADT specified for `DRec a`'s field names.
 
-These are for basic types that just wrap `setWith`.
+@docs setBool, setDRec, setFloat, setInt, setJson, setString
 
 
 ## JSON interop
+
+Create decoders and encoders based on the defined schema.
 
 @docs decoder, decodeValue, decodeString, encoder
 
 
 # Query
 
+Helper functions to query the state and values of a `DRec a` and of its member fields.
+
 @docs errorMessages, fieldBuffer, fieldError, fieldNames, get, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
 
 
 # Decode
 
-@docs fromArray, fromBool, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
+Decode from Elm base types to `DRec a`, as you would decode from a JSON string
+to an Elm record/types.
 
-Decode from Elm types.
+@docs fromArray, fromBool, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
 
 
 # Encode
 
-@docs toArray, toBool, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
+Encode to Elm base types from a `DRec a`, as you would encode to a JSON string
+from an Elm record/types.
 
-Encode to Elm types.
+@docs toArray, toBool, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
 
 -}
 
@@ -227,9 +247,9 @@ type DError
     | ValidationFailed String
 
 
-{-| Initialize a `DRec a` (without schema and data) with default ADT to `String` function.
+{-| Initialize a `DRec a` with an ADT for fields and with the default ADT to `String` function.
 
-The default ADT to `String` conversion is from 'CamelCase' to 'snake\_case'. To
+The default ADT to `String` conversion is from 'camelCase' to 'snake\_case'. To
 customize the conversion use `initWith`.
 
 -}
@@ -238,7 +258,7 @@ init =
     initWith toSnakeCase
 
 
-{-| Initialize a `DRec a` (without schema and data) and with a custom ADT to `String` function.
+{-| Initialize a `DRec a` with a custom ADT to `String` function.
 -}
 initWith : (a -> String) -> DRec a
 initWith toField =
@@ -276,29 +296,35 @@ toSnakeCase adt =
 
 {-| Define `DRec a` schema when initializing your application's model member.
 
+    module User exposing (UserField(..), init)
+
     import DRec exposing (DRec, DType(..), DValue(..))
 
-    type Field
+    type UserField
         = Id
         | Email
         | Name
         | Token
 
-    type User
-        = User (DRec Field)
-
-    init : User
+    init : DRec UserField
     init =
         DRec.init
             |> DRec.field Id DInt
             |> DRec.field Email DString
             |> DRec.field Name DString
             |> DRec.field Token (DMaybe VString)
-            |> User
 
     -- ...
+
+    module Model exposing (Model, Msg(..), init)
+
+    import DRec exposing (DRec)
+    import User exposing(..)
+
+    -- ...
+
     type alias Model =
-        { user : User
+        { user : DRec UserField
         }
 
     init : Model
@@ -391,28 +417,39 @@ setString fld val drec =
 
 {-| Set a value for specified `DRec a` field with a custom value conversion/validation.
 
-In case of a conversion/validation error, the value is retained in an internal
-input buffer and an error is set for the specified field.
+In case of a conversion/validation error - the function given as the 2nd argument,
+must return `Nothing`, the value is then retained in an internal input buffer and
+an error is set for the specified field.
 
 For quering the error and input buffer use `fieldError` and `fieldBuffer` respectively.
 
-    import User exposing (User(..))
+    import DRec exposing (DRec)
+    import User exposing (..)
 
-    update : Msg -> Model -> (Model, Cmd Msg)
+    type Msg
+        = UserEmail String
+        | UserName String
+        | UserToken (Maybe String)
+
+    -- ...
+    update : Msg -> Model -> ( Model, Cmd Msg )
     update msg model =
-        let
-            (User drec) =
-                model.user
-        in
-        Name str ->
-            ( { model | user = DRec.setString User.Name str drec |> User }
-            , Cmd.none
-            )
+        case msg of
+            UserEmail email ->
+                ( { model | user = DRec.setWith User.Email (fromString >> Just) email model.user }
+                , Cmd.none
+                )
 
-        Token mstr ->
-            ( { model | user = DRec.setWith User.Token (DRec.fromMaybe DRec.fromString >> Just) mstr drec |> User }
-            , Cmd.none
-            )
+            UserName uname ->
+                -- same as above via the convenience wrapper function
+                ( { model | user = DRec.setString User.Name uname model.user }
+                , Cmd.none
+                )
+
+            UserToken mtkn ->
+                ( { model | user = DRec.setWith User.Token (DRec.fromMaybe DRec.fromString >> Just) mtkn model.user }
+                , Cmd.none
+                )
 
 -}
 setWith : a -> (b -> Maybe (DField a)) -> b -> DRec a -> DRec a
@@ -590,7 +627,7 @@ hasSchema (DRec r) =
 A valid value is considered to be present if no input buffer for the field is
 set and the field itself actually contains a valid value.
 
-In case of 'DMaybe' a 'Nothing' is considered a valid existing value.
+In case of `DMaybe` a `Nothing` is considered a valid existing value.
 
 -}
 hasValue : a -> DRec a -> Bool
@@ -611,7 +648,7 @@ isEmpty (DRec r) =
     Dict.isEmpty r.store
 
 
-{-| Check if a record is valid: no errors and `hasValue` returns 'True' for every field.
+{-| Check if a record is valid: no errors and `hasValue` returns `True` for every field.
 -}
 isValid : DRec a -> Bool
 isValid (DRec r) =
@@ -619,7 +656,7 @@ isValid (DRec r) =
 
 
 {-| Check if a record is valid for specified fields: no errors and `hasValue`
-returns 'True' for every listed field.
+returns `True` for every listed field.
 
 This is useful for cases where you might want filter out the primary key of a
 database table that will be handled automatically by the database and thus,
@@ -634,7 +671,7 @@ isValidWith fields (DRec r) =
             (Dict.isEmpty r.errors)
 
 
-{-| Query `DRec a` schema.
+{-| Query `DRec a` schema, for use in another `DRec a`.
 
     type AddressField
         = SteetName
@@ -907,7 +944,7 @@ toList toValue rf =
                         |> Err
 
 
-{-| Convert from a `DField a` of `DType` 'DMaybe (DField a)' to `Maybe b`.
+{-| Convert from a `DField a` of `DType` `DMaybe (DField a)` to `Maybe b`.
 
     type Field
         = Token
@@ -925,7 +962,7 @@ toList toValue rf =
     token drec =
         DRec.get Token drec
             |> DRec.toMaybe DRec.toString
-            |> DRec.withDefault Nothing
+            |> Maybe.withDefault Nothing
 
 -}
 toMaybe : (Result DError (DField a) -> Result DError b) -> Result DError (DField a) -> Result DError (Maybe b)

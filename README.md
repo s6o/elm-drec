@@ -11,43 +11,43 @@ The elm-drec library provides an alternative record type `DRec a` which can
 provide decoding and encoding based on `DRec a`'s schema.
 
 ## Features / Trade-offs
-  * ADT based fields / schema
-  * schema and type validation
-  * automatic schema based decoding and encoding from and to JSON
-  * user input buffering (partial input validation failure handling)
-  * No reliance on `Debug.crash`, `Result x a` is used instead
-  * `Dict comparable v` and `Set comparable` member support excluded,
-    due to sum types not being `comparable` (at present an impl. limitation)
-  * Custom types are supported via serialization to/from JSON (`Json.Encode.Value`)
+
+* ADT based fields / schema
+* schema and type validation
+* automatic schema based decoding and encoding from and to JSON
+* user input buffering (partial input validation and failure handling)
+* `Dict comparable v`, `Set comparable` and tuple member support excluded,
+  due to issues with `comparable` and trying to keep the base type `DRec a`
+  to a single parameterization
 
 ### Supported types
-  * Array (Bool, DRec, Float, Int, Json.Encode.Value, String)
-  * Bool
-  * DRec (nesting / sub-records)
-  * Float
-  * Int
-  * Json.Encode.Value
-  * List (Bool, DRec, Float, Int, Json.Encode.Value, String)
-  * Maybe (Bool, DRec, Float, Int, Json.Encode.Value, String)
-  * String
+
+* Array (Bool, DRec, Float, Int, Json.Encode.Value, String)
+* Bool
+* DRec (nesting / sub-records)
+* Float
+* Int
+* Json.Encode.Value
+* List (Bool, DRec, Float, Int, Json.Encode.Value, String)
+* Maybe (Bool, DRec, Float, Int, Json.Encode.Value, String)
+* String
 
 ## Usage examples
 
 ### Schema
+
 ```elm
 -- Elm record                               elm-drec
 
 
 import Array exposing (Array)               import Dict exposing (Dict)
-import Dict exposing (Dict)                 import DRec
-                                                exposing
-                                                    ( DError
-                                                    , DRec
-                                                    , DType(..)
-                                                    , DValue(..)
-                                                    , init, field, schema)
+import Dict exposing (Dict)                 import DRec exposing (DError, DRec, DType(..), DValue(..), init, field, schema)
 
-                                            type AddressField = StreetName | BuildingNumber | SubNumber | DeliveryDays
+                                            type AddressField
+                                                = StreetName
+                                                | BuildingNumber
+                                                | SubNumber
+                                                | DeliveryDays
 
 type alias Address =                        address : DRec AddressField
     { streetName : String                   address =
@@ -67,11 +67,12 @@ type alias Customer =                       customer : DRec CustomerFields
                                                     |> field Address (DDRec <| schema address)
 
 type alias Model =                          type alias Model =
-    { customers : Dict Int Customer             { customers : Dict Int DRec
+    { customers : Dict Int Customer             { customers : Dict Int (DRec CustomerFields)
     }                                           }
 ```
 
 ### Decoding
+
 ```elm
 -- Elm                                      elm-drec
 
@@ -124,6 +125,7 @@ init =
 ```
 
 ### Encoding
+
 ```elm
 -- Elm                                      elm-drec
 
