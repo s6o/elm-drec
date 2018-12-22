@@ -1,56 +1,12 @@
-module DRec
-    exposing
-        ( DError(..)
-        , DField
-        , DRec
-        , DSchema
-        , DType(..)
-        , DValue(..)
-        , clear
-        , decodeString
-        , decodeValue
-        , decoder
-        , encoder
-        , errorMessages
-        , field
-        , fieldBuffer
-        , fieldError
-        , fieldNames
-        , fromArray
-        , fromBool
-        , fromDRec
-        , fromFloat
-        , fromInt
-        , fromJson
-        , fromList
-        , fromMaybe
-        , fromString
-        , get
-        , hasSchema
-        , hasValue
-        , init
-        , initWith
-        , isEmpty
-        , isValid
-        , isValidWith
-        , schema
-        , setBool
-        , setDRec
-        , setFloat
-        , setInt
-        , setJson
-        , setString
-        , setWith
-        , toArray
-        , toBool
-        , toDRec
-        , toFloat
-        , toInt
-        , toJson
-        , toList
-        , toMaybe
-        , toString
-        )
+module DRec exposing
+    ( DType(..), DValue(..), DRec, DSchema, DField, DError(..), init, initWith, field
+    , clear, setWith
+    , setBool, setDRec, setFloat, setInt, setJson, setString
+    , decoder, decodeValue, decodeString, encoder
+    , errorMessages, fieldBuffer, fieldError, fieldNames, get, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
+    , fromArray, fromBool, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
+    , toArray, toBool, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
+    )
 
 {-| Elm `Dict` based record with field name and type validation and automatic
 decoding from and to JSON.
@@ -106,6 +62,7 @@ import Char
 import Dict exposing (Dict)
 import Json.Decode exposing (Decoder)
 import Json.Encode
+
 
 
 -- SCHEMA
@@ -194,8 +151,8 @@ fieldType fname dfield (DRec r) =
         DBool_ _ ->
             DBool
 
-        DDRec_ (DRec r) ->
-            DDRec (DSchema ( r.sfields, r.schema ))
+        DDRec_ (DRec sr) ->
+            DDRec (DSchema ( sr.sfields, sr.schema ))
 
         DFloat_ _ ->
             DFloat
@@ -272,7 +229,7 @@ type DError
 
 {-| Initialize a `DRec a` (without schema and data) with default ADT to `String` function.
 
-The default ADT to `String` conversion is from 'CamelCase' to 'snake_case'. To
+The default ADT to `String` conversion is from 'CamelCase' to 'snake\_case'. To
 customize the conversion use `initWith`.
 
 -}
@@ -300,13 +257,15 @@ initWith toField =
 -}
 toSnakeCase : a -> String
 toSnakeCase adt =
-    Basics.toString adt
+    Debug.toString adt
         |> String.foldl
             (\c accum ->
                 if List.isEmpty accum then
                     Char.toLower c :: accum
+
                 else if Char.isUpper c then
                     Char.toLower c :: ('_' :: accum)
+
                 else
                     c :: accum
             )
@@ -337,9 +296,7 @@ toSnakeCase adt =
             |> DRec.field Token (DMaybe VString)
             |> User
 
-
     -- ...
-
     type alias Model =
         { user : User
         }
@@ -353,29 +310,29 @@ toSnakeCase adt =
 field : a -> DType -> DRec a -> DRec a
 field adt dtype (DRec r) =
     let
-        field =
+        rfield =
             r.toField adt
 
         typeError =
-            Basics.toString dtype
+            Debug.toString dtype
                 |> InvalidSchemaType
-                |> (\derror -> { r | errors = Dict.insert field derror r.errors })
+                |> (\derror -> { r | errors = Dict.insert rfield derror r.errors })
     in
     case
-        Dict.get field r.schema
+        Dict.get rfield r.schema
     of
         Nothing ->
             DRec
                 { r
                     | fields = r.fields ++ [ adt ]
                     , sfields = r.sfields ++ [ r.toField adt ]
-                    , schema = Dict.insert field dtype r.schema
+                    , schema = Dict.insert rfield dtype r.schema
                 }
 
         Just _ ->
-            field
+            rfield
                 |> DuplicateField
-                |> (\derror -> { r | errors = Dict.insert field derror r.errors })
+                |> (\derror -> { r | errors = Dict.insert rfield derror r.errors })
                 |> DRec
 
 
@@ -393,43 +350,43 @@ clear (DRec r) =
 {-| Set a `Bool` value for specified `DRec a` field.
 -}
 setBool : a -> Bool -> DRec a -> DRec a
-setBool field value drec =
-    setWith field (fromBool >> Just) value drec
+setBool fld val drec =
+    setWith fld (fromBool >> Just) val drec
 
 
 {-| Set a sub `DRec a` for spcified `DRec a` field.
 -}
 setDRec : a -> DRec a -> DRec a -> DRec a
-setDRec field value drec =
-    setWith field (fromDRec >> Just) value drec
+setDRec fld val drec =
+    setWith fld (fromDRec >> Just) val drec
 
 
 {-| Set a `Float` value for specified `DRec a` field.
 -}
 setFloat : a -> Float -> DRec a -> DRec a
-setFloat field value drec =
-    setWith field (fromFloat >> Just) value drec
+setFloat fld val drec =
+    setWith fld (fromFloat >> Just) val drec
 
 
 {-| Set a `Int` value for specified `DRec a` field.
 -}
 setInt : a -> Int -> DRec a -> DRec a
-setInt field value drec =
-    setWith field (fromInt >> Just) value drec
+setInt fld val drec =
+    setWith fld (fromInt >> Just) val drec
 
 
 {-| Set a `Json.Encode.Value` value for specified `DRec a` field.
 -}
 setJson : a -> Json.Encode.Value -> DRec a -> DRec a
-setJson field value drec =
-    setWith field (fromJson >> Just) value drec
+setJson fld val drec =
+    setWith fld (fromJson >> Just) val drec
 
 
 {-| Set a `String` value for specified `DRec a` field.
 -}
 setString : a -> String -> DRec a -> DRec a
-setString field value drec =
-    setWith field (fromString >> Just) value drec
+setString fld val drec =
+    setWith fld (fromString >> Just) val drec
 
 
 {-| Set a value for specified `DRec a` field with a custom value conversion/validation.
@@ -466,53 +423,54 @@ setWith adt toValue value (DRec r) =
 {-| @private
 -}
 setWithP : String -> (b -> Maybe (DField a)) -> b -> DRec a -> DRec a
-setWithP field toValue value (DRec r) =
+setWithP fld toValue val (DRec r) =
     let
         setError bufferFlag de =
             case bufferFlag of
                 False ->
-                    { r | errors = Dict.insert field de r.errors }
+                    { r | errors = Dict.insert fld de r.errors }
 
                 True ->
                     let
                         bufferValue =
-                            Basics.toString value
-                                -- Basics.toString adds quotes which we don't want
+                            Debug.toString val
+                                -- Debug.toString adds quotes which we don't want
                                 |> (String.dropLeft 1 >> String.dropRight 1)
                     in
                     { r
-                        | buffers = Dict.insert field bufferValue r.buffers
-                        , errors = Dict.insert field de r.errors
+                        | buffers = Dict.insert fld bufferValue r.buffers
+                        , errors = Dict.insert fld de r.errors
                     }
     in
     case
-        Dict.get field r.schema
+        Dict.get fld r.schema
     of
         Nothing ->
-            field
+            fld
                 |> UknownField
                 |> setError False
                 |> DRec
 
         Just dt ->
-            toValue value
+            toValue val
                 |> Maybe.map
                     (\dfield ->
-                        if fieldType field dfield (DRec r) == dt then
+                        if fieldType fld dfield (DRec r) == dt then
                             DRec
                                 { r
-                                    | buffers = Dict.remove field r.buffers
-                                    , errors = Dict.remove field r.errors
-                                    , store = Dict.insert field dfield r.store
+                                    | buffers = Dict.remove fld r.buffers
+                                    , errors = Dict.remove fld r.errors
+                                    , store = Dict.insert fld dfield r.store
                                 }
+
                         else
-                            (Basics.toString (fieldType field dfield (DRec r)) ++ " /= " ++ Basics.toString dt)
+                            (Debug.toString (fieldType fld dfield (DRec r)) ++ " /= " ++ Debug.toString dt)
                                 |> TypeMismatch
                                 |> setError True
                                 |> DRec
                     )
                 |> Maybe.withDefault
-                    (ValidationFailed field
+                    (ValidationFailed fld
                         |> setError True
                         |> DRec
                     )
@@ -558,11 +516,12 @@ errorMessages : DRec a -> Maybe String
 errorMessages (DRec r) =
     if Dict.isEmpty r.errors then
         Nothing
+
     else
         r.errors
             |> Dict.foldl
-                (\field derror accum ->
-                    accum ++ ("| " ++ field ++ " -> " ++ derrorString derror)
+                (\fld derror accum ->
+                    accum ++ ("| " ++ fld ++ " -> " ++ derrorString derror)
                 )
                 ""
             |> Just
@@ -595,23 +554,23 @@ fieldNames (DRec r) =
 get : a -> DRec a -> Result DError (DField a)
 get adt (DRec r) =
     let
-        field =
+        fld =
             r.toField adt
     in
     case
-        Dict.get field r.schema
+        Dict.get fld r.schema
     of
         Nothing ->
-            field
+            fld
                 |> UknownField
                 |> Err
 
         Just _ ->
             case
-                Dict.get field r.store
+                Dict.get fld r.store
             of
                 Nothing ->
-                    field
+                    fld
                         |> MissingValue
                         |> Err
 
@@ -635,11 +594,11 @@ In case of 'DMaybe' a 'Nothing' is considered a valid existing value.
 
 -}
 hasValue : a -> DRec a -> Bool
-hasValue field drec =
-    fieldBuffer field drec
+hasValue fld drec =
+    fieldBuffer fld drec
         |> Maybe.map (\_ -> False)
         |> Maybe.withDefault
-            (get field drec
+            (get fld drec
                 |> Result.map (\_ -> True)
                 |> Result.withDefault False
             )
@@ -1024,8 +983,8 @@ toString rf =
 {-| @private
 -}
 arrayDecoder : String -> DRec a -> (b -> DField a) -> Decoder (Array b) -> Decoder (DRec a)
-arrayDecoder fname drec toItem decoder =
-    decoder
+arrayDecoder fname drec toItem adecoder =
+    adecoder
         |> Json.Decode.field fname
         |> Json.Decode.map (\v -> setWithP fname (fromArray toItem >> Just) v drec)
 
@@ -1033,8 +992,8 @@ arrayDecoder fname drec toItem decoder =
 {-| @private
 -}
 listDecoder : String -> DRec a -> (b -> DField a) -> Decoder (List b) -> Decoder (DRec a)
-listDecoder fname drec toItem decoder =
-    decoder
+listDecoder fname drec toItem ldecoder =
+    ldecoder
         |> Json.Decode.field fname
         |> Json.Decode.map (\v -> setWithP fname (fromList toItem >> Just) v drec)
 
@@ -1042,8 +1001,8 @@ listDecoder fname drec toItem decoder =
 {-| @private
 -}
 maybeDecoder : String -> DRec a -> (b -> DField a) -> Decoder (Maybe b) -> Decoder (DRec a)
-maybeDecoder fname drec toItem decoder =
-    decoder
+maybeDecoder fname drec toItem mdecoder =
+    mdecoder
         |> Json.Decode.map (\mv -> setWithP fname (fromMaybe toItem >> Just) mv drec)
 
 
@@ -1071,7 +1030,7 @@ fieldDecoder fname dtype drec =
                                 , sfields = forder
                                 , schema = stypes
                                 , store = Dict.empty
-                                , toField = Basics.toString
+                                , toField = Debug.toString
                                 }
                     in
                     Json.Decode.array (subDecoder subRec)
@@ -1107,7 +1066,7 @@ fieldDecoder fname dtype drec =
                         , sfields = forder
                         , schema = stypes
                         , store = Dict.empty
-                        , toField = Basics.toString
+                        , toField = Debug.toString
                         }
             in
             Json.Decode.field fname (subDecoder subRec)
@@ -1141,7 +1100,7 @@ fieldDecoder fname dtype drec =
                                 , sfields = forder
                                 , schema = stypes
                                 , store = Dict.empty
-                                , toField = Basics.toString
+                                , toField = Debug.toString
                                 }
                     in
                     Json.Decode.list (subDecoder subRec)
@@ -1179,7 +1138,7 @@ fieldDecoder fname dtype drec =
                                 , sfields = forder
                                 , schema = stypes
                                 , store = Dict.empty
-                                , toField = Basics.toString
+                                , toField = Debug.toString
                                 }
                     in
                     Json.Decode.maybe (Json.Decode.field fname (subDecoder subRec))
@@ -1227,6 +1186,7 @@ decoder : DRec a -> Decoder (DRec a)
 decoder (DRec r) =
     if Dict.isEmpty r.errors then
         subDecoder (DRec r)
+
     else
         errorMessages (DRec r)
             |> Maybe.map Json.Decode.fail
@@ -1242,7 +1202,8 @@ decodeValue : DRec a -> Json.Encode.Value -> Result DError (DRec a)
 decodeValue drec json =
     if hasSchema drec then
         Json.Decode.decodeValue (decoder drec) json
-            |> Result.mapError DecodingFailed
+            |> Result.mapError (Json.Decode.errorToString >> DecodingFailed)
+
     else
         Err NoSchema
 
@@ -1253,7 +1214,8 @@ decodeString : DRec a -> String -> Result DError (DRec a)
 decodeString drec json =
     if hasSchema drec then
         Json.Decode.decodeString (decoder drec) json
-            |> Result.mapError DecodingFailed
+            |> Result.mapError (Json.Decode.errorToString >> DecodingFailed)
+
     else
         Err NoSchema
 
@@ -1264,6 +1226,7 @@ encoder : DRec a -> Json.Encode.Value
 encoder (DRec r) =
     if Dict.isEmpty r.errors then
         subObject (DRec r)
+
     else
         Json.Encode.object []
 
@@ -1275,9 +1238,9 @@ subObject : DRec a -> Json.Encode.Value
 subObject (DRec r) =
     r.sfields
         |> List.foldr
-            (\field accum ->
-                Dict.get field r.store
-                    |> Maybe.map (objectField field accum)
+            (\fld accum ->
+                Dict.get fld r.store
+                    |> Maybe.map (objectField fld accum)
                     |> Maybe.withDefault accum
             )
             []
@@ -1287,57 +1250,57 @@ subObject (DRec r) =
 {-| @private
 -}
 objectField : String -> List ( String, Json.Encode.Value ) -> DField a -> List ( String, Json.Encode.Value )
-objectField field accum dfield =
+objectField fld accum dfield =
     case dfield of
         DArray_ dfarray ->
             let
                 valueArray =
                     dfarray
                         |> Array.foldr
-                            (\df accum ->
-                                case objectField field [] df |> List.head of
+                            (\df a ->
+                                case objectField fld [] df |> List.head of
                                     Nothing ->
-                                        accum
+                                        a
 
                                     Just ( _, v ) ->
-                                        v :: accum
+                                        v :: a
                             )
                             []
                         |> Array.fromList
             in
-            ( field, Json.Encode.array valueArray ) :: accum
+            ( fld, Json.Encode.array Basics.identity valueArray ) :: accum
 
         DBool_ b ->
-            ( field, Json.Encode.bool b ) :: accum
+            ( fld, Json.Encode.bool b ) :: accum
 
         DDRec_ sdrec ->
-            ( field, subObject sdrec ) :: accum
+            ( fld, subObject sdrec ) :: accum
 
         DFloat_ f ->
-            ( field, Json.Encode.float f ) :: accum
+            ( fld, Json.Encode.float f ) :: accum
 
         DInt_ i ->
-            ( field, Json.Encode.int i ) :: accum
+            ( fld, Json.Encode.int i ) :: accum
 
         DJson_ v ->
-            ( field, v ) :: accum
+            ( fld, v ) :: accum
 
         DList_ dfl ->
             let
                 valueList =
                     dfl
                         |> List.foldr
-                            (\df accum ->
-                                case objectField field [] df |> List.head of
+                            (\df a ->
+                                case objectField fld [] df |> List.head of
                                     Nothing ->
-                                        accum
+                                        a
 
                                     Just ( _, v ) ->
-                                        v :: accum
+                                        v :: a
                             )
                             []
             in
-            ( field, Json.Encode.list valueList ) :: accum
+            ( fld, Json.Encode.list Basics.identity valueList ) :: accum
 
         DMaybe_ mv ->
             case mv of
@@ -1345,7 +1308,7 @@ objectField field accum dfield =
                     accum
 
                 Just df ->
-                    objectField field accum df
+                    objectField fld accum df
 
         DString_ s ->
-            ( field, Json.Encode.string s ) :: accum
+            ( fld, Json.Encode.string s ) :: accum
