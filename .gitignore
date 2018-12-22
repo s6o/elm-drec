@@ -5,3 +5,4 @@ repl-temp-*
 .vscode/
 index.html
 node_modules
+docs.json
