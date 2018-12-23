@@ -1,11 +1,11 @@
 module DRec exposing
     ( DType(..), DValue(..), DRec, DSchema, DField, DError(..), init, initWith, field
     , clear, setWith
-    , setBool, setDRec, setFloat, setInt, setJson, setString
+    , setBool, setChar, setDRec, setFloat, setInt, setJson, setString
     , decoder, decodeValue, decodeString, encoder
     , errorMessages, fieldBuffer, fieldError, fieldNames, get, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
-    , fromArray, fromBool, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
-    , toArray, toBool, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
+    , fromArray, fromBool, fromChar, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
+    , toArray, toBool, toChar, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
     )
 
 {-| Elm `Dict` based record with field name and type validation and automatic
