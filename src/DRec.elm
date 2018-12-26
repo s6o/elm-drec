@@ -20,7 +20,7 @@ decoding from and to JSON.
 A schema is a similar construct to a regular Elm record definition. It describes
 the member fields and their types.
 
-Aschema definitions usually start with the `init` or `initWith` function,
+A schema definitions usually start with the `init` or `initWith` function,
 followed by several `field` functions piped after each other.
 
 @docs DType, DValue, DRec, DSchema, DField, DError, init, initWith, field
