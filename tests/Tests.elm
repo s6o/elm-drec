@@ -32,6 +32,20 @@ suite =
                         ]
                         BaseTypes.basedrec
             ]
+        , describe "DRec getters and setters"
+            [ test "get as Bool" <|
+                \_ -> Expect.equal (Ok True) (DRec.get BaseTypes.Booly BaseTypes.basevalues |> DRec.toBool)
+            , test "get as Char" <|
+                \_ -> Expect.equal (Ok 'C') (DRec.get BaseTypes.Chary BaseTypes.basevalues |> DRec.toChar)
+            , test "get as Float" <|
+                \_ -> Expect.equal (Ok 3.14) (DRec.get BaseTypes.Floaty BaseTypes.basevalues |> DRec.toFloat)
+            , test "get as Int" <|
+                \_ -> Expect.equal (Ok 1357) (DRec.get BaseTypes.Inty BaseTypes.basevalues |> DRec.toInt)
+            , test "get as Json.Encode.Value" <|
+                \_ -> Expect.equal (Ok <| Json.Encode.string "JSON") (DRec.get BaseTypes.Jsony BaseTypes.basevalues |> DRec.toJson)
+            , test "get as String" <|
+                \_ -> Expect.equal (Ok "lorem ipsum") (DRec.get BaseTypes.Stringy BaseTypes.basevalues |> DRec.toString)
+            ]
         , describe "JSON interop"
             [ test "Decode base types to DRec BaseFields" <|
                 \_ ->
