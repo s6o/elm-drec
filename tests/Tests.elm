@@ -68,4 +68,65 @@ suite =
                     in
                     Expect.equal BaseTypes.basejson json
             ]
+        , describe "Test validations via setWith"
+            [ test "failed Int assignment" <|
+                \_ ->
+                    let
+                        validator =
+                            String.toInt >> Maybe.map DRec.fromInt
+
+                        drec =
+                            BaseTypes.basevalues
+                                |> DRec.setWith BaseTypes.Inty validator "3.1"
+                    in
+                    Expect.all
+                        [ DRec.hasValue BaseTypes.Inty >> Expect.equal False
+                        , DRec.errorMessages >> Expect.equal (Just "Validation failed, field: inty")
+                        , DRec.fieldBuffer BaseTypes.Inty >> Expect.equal (Just "3.1")
+                        , DRec.isValid >> Expect.equal False
+                        ]
+                        drec
+            , test "failed Float assignment" <|
+                \_ ->
+                    let
+                        validator =
+                            String.toFloat >> Maybe.map DRec.fromFloat
+
+                        drec =
+                            BaseTypes.basevalues
+                                |> DRec.setWith BaseTypes.Floaty validator "31a"
+                    in
+                    Expect.all
+                        [ DRec.hasValue BaseTypes.Floaty >> Expect.equal False
+                        , DRec.errorMessages >> Expect.equal (Just "Validation failed, field: floaty")
+                        , DRec.fieldBuffer BaseTypes.Floaty >> Expect.equal (Just "31a")
+                        , DRec.isValid >> Expect.equal False
+                        ]
+                        drec
+            , test "failed assignments" <|
+                \_ ->
+                    let
+                        validatorInt =
+                            String.toInt >> Maybe.map DRec.fromInt
+
+                        validatorFloat =
+                            String.toFloat >> Maybe.map DRec.fromFloat
+
+                        drec =
+                            BaseTypes.basevalues
+                                |> DRec.setWith BaseTypes.Inty validatorInt "3.1"
+                                |> DRec.setWith BaseTypes.Floaty validatorFloat "31a"
+                    in
+                    Expect.all
+                        [ DRec.hasValue BaseTypes.Inty >> Expect.equal False
+                        , DRec.hasValue BaseTypes.Floaty >> Expect.equal False
+                        , DRec.errorMessages >> Expect.equal (Just "Validation failed, field: floaty | Validation failed, field: inty")
+                        , DRec.fieldBuffer BaseTypes.Floaty >> Expect.equal (Just "31a")
+                        , DRec.fieldBuffer BaseTypes.Inty >> Expect.equal (Just "3.1")
+                        , DRec.isValid >> Expect.equal False
+                        , DRec.fieldError BaseTypes.Floaty >> Expect.equal (Just "Validation failed, field: floaty")
+                        , DRec.fieldError BaseTypes.Inty >> Expect.equal (Just "Validation failed, field: inty")
+                        ]
+                        drec
+            ]
         ]

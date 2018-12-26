@@ -574,7 +574,11 @@ errorMessages (DRec r) =
         r.errors
             |> Dict.foldl
                 (\fld derror accum ->
-                    accum ++ ("| " ++ fld ++ " -> " ++ derrorString derror)
+                    if String.isEmpty accum then
+                        accum ++ derrorString derror
+
+                    else
+                        accum ++ (" | " ++ derrorString derror)
                 )
                 ""
             |> Just
