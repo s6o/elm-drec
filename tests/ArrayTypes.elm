@@ -1,10 +1,11 @@
-module ArrayTypes exposing (ArrayFields(..), arraydrec, arrayjson, arrayvalues, fieldNames)
+module ArrayTypes exposing (Fields(..), fieldNames, init, json, values)
 
+import Array
 import DRec exposing (DRec, DType(..), DValue(..))
 import Json.Encode
 
 
-type ArrayFields
+type Fields
     = Booly
     | Chary
     | Floaty
@@ -13,7 +14,7 @@ type ArrayFields
     | Stringy
 
 
-fieldNames : List ArrayFields
+fieldNames : List Fields
 fieldNames =
     [ Booly
     , Chary
@@ -24,8 +25,8 @@ fieldNames =
     ]
 
 
-arraydrec : DRec ArrayFields
-arraydrec =
+init : DRec Fields
+init =
     DRec.init
         |> DRec.field Booly (DArray VBool)
         |> DRec.field Chary (DArray VChar)
@@ -35,22 +36,17 @@ arraydrec =
         |> DRec.field Stringy (DArray VString)
 
 
-arrayvalues : DRec ArrayFields
-arrayvalues =
-    arraydrec
+values : DRec Fields
+values =
+    init
+        |> DRec.setArray Booly DRec.fromBool (Array.fromList [ True, False, True ])
+        |> DRec.setArray Chary DRec.fromCharCode (Array.fromList [ 65, 66, 67 ])
+        |> DRec.setArray Floaty DRec.fromFloat (Array.fromList [ 1.1, 1.2, 1.3 ])
+        |> DRec.setArray Inty DRec.fromInt (Array.fromList [ 1, 3, 5, 7 ])
+        |> DRec.setArray Jsony DRec.fromJson (Array.fromList [ Json.Encode.string "J", Json.Encode.string "S", Json.Encode.string "O", Json.Encode.string "N" ])
+        |> DRec.setArray Stringy DRec.fromString (Array.fromList [ "lorem", "ipsum" ])
 
 
-
-{-
-   |> DRec.setBool Booly True
-   |> DRec.setChar Chary 'C'
-   |> DRec.setFloat Floaty 3.14
-   |> DRec.setInt Inty 1357
-   |> DRec.setJson Jsony (Json.Encode.string "JSON")
-   |> DRec.setString Stringy "lorem ipsum"
--}
-
-
-arrayjson : String
-arrayjson =
+json : String
+json =
     """{"booly":[true,false,true],"chary":[65,66,67],"floaty":[1.1,1.2,1.3],"inty":[1,3,5,7],"jsony":["J","S","O","N"],"stringy":["lorem","ipsum"]}"""
