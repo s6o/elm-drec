@@ -1,9 +1,9 @@
 module DRec exposing
     ( DType(..), DValue(..), DRec, DSchema, DField, DError(..), init, initWith, field
     , clear, setWith
-    , setBool, setChar, setDRec, setFloat, setInt, setJson, setString
+    , setArray, setBool, setChar, setDRec, setFloat, setInt, setJson, setList, setMaybe, setString
     , decoder, decodeValue, decodeString, encoder
-    , errorMessages, fieldBuffer, fieldError, fieldNames, get, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
+    , errorMessages, fieldBuffer, fieldError, fieldNames, get, getAs, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
     , fromArray, fromBool, fromChar, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
     , toArray, toBool, toChar, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
     )
@@ -43,7 +43,7 @@ error/success chain.
 These functions wrap `setWith` with a type reflected in their name. The first
 argument, as with `setWith` is the ADT specified for `DRec a`'s field names.
 
-@docs setBool, setChar, setDRec, setFloat, setInt, setJson, setString
+@docs setArray, setBool, setChar, setDRec, setFloat, setInt, setJson, setList, setMaybe, setString
 
 
 ## JSON interop
@@ -57,7 +57,7 @@ Create decoders and encoders based on the defined schema.
 
 Helper functions to query the state and values of a `DRec a` and of its member fields.
 
-@docs errorMessages, fieldBuffer, fieldError, fieldNames, get, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
+@docs errorMessages, fieldBuffer, fieldError, fieldNames, get, getAs, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
 
 
 # Decode
@@ -347,11 +347,6 @@ field adt dtype (DRec r) =
     let
         rfield =
             r.toField adt
-
-        typeError =
-            Debug.toString dtype
-                |> InvalidSchemaType
-                |> (\derror -> { r | errors = Dict.insert rfield derror r.errors })
     in
     case
         Dict.get rfield r.schema
@@ -380,6 +375,13 @@ field adt dtype (DRec r) =
 clear : DRec a -> DRec a
 clear (DRec r) =
     DRec { r | buffers = Dict.empty, errors = Dict.empty, store = Dict.empty }
+
+
+{-| Set an `Array b` value for specified `DRec a` field.
+-}
+setArray : a -> (b -> DField a) -> Array b -> DRec a -> DRec a
+setArray fld fromValue vals drec =
+    setWith fld (fromArray fromValue >> Just) vals drec
 
 
 {-| Set a `Bool` value for specified `DRec a` field.
@@ -422,6 +424,20 @@ setInt fld val drec =
 setJson : a -> Json.Encode.Value -> DRec a -> DRec a
 setJson fld val drec =
     setWith fld (fromJson >> Just) val drec
+
+
+{-| Set an `List b` value for specified `DRec a` field.
+-}
+setList : a -> (b -> DField a) -> List b -> DRec a -> DRec a
+setList fld fromValue vals drec =
+    setWith fld (fromList fromValue >> Just) vals drec
+
+
+{-| Set an `Maybe b` value for specified `DRec a` field.
+-}
+setMaybe : a -> (b -> DField a) -> Maybe b -> DRec a -> DRec a
+setMaybe fld fromValue vals drec =
+    setWith fld (fromMaybe fromValue >> Just) vals drec
 
 
 {-| Set a `String` value for specified `DRec a` field.
@@ -633,6 +649,22 @@ get adt (DRec r) =
 
                 Just dfield ->
                     Ok dfield
+
+
+{-| For a valid field defined in schema return its value as a result of the fromField
+function specified as the 2nd argument.
+
+    import User exposing (..)
+
+
+    -- ...
+    email =
+        getAs User.Email DRec.toString drecUser
+
+-}
+getAs : a -> (Result DError (DField a) -> Result DError b) -> DRec a -> Result DError b
+getAs adt fromField drec =
+    get adt drec |> fromField
 
 
 {-| Check if a schema has been specified.
