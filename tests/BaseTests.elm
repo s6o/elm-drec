@@ -1,4 +1,4 @@
-module Tests exposing (suite)
+module BaseTests exposing (basesuite)
 
 import BaseTypes
 import DRec
@@ -7,8 +7,8 @@ import Json.Encode
 import Test exposing (..)
 
 
-suite : Test
-suite =
+basesuite : Test
+basesuite =
     describe "DRec Tests"
         [ describe "Schema"
             [ test "Check expected results of DRec.init" <|
