@@ -30,21 +30,21 @@ basesuite =
                         , DRec.errorMessages >> Expect.equal Nothing
                         , DRec.fieldNames >> Expect.equal BaseTypes.fieldNames
                         ]
-                        BaseTypes.basedrec
+                        BaseTypes.init
             ]
         , describe "DRec getters and setters"
             [ test "get as Bool" <|
-                \_ -> Expect.equal (Ok True) (DRec.get BaseTypes.Booly BaseTypes.basevalues |> DRec.toBool)
+                \_ -> Expect.equal (Ok True) (DRec.get BaseTypes.Booly BaseTypes.values |> DRec.toBool)
             , test "get as Char" <|
-                \_ -> Expect.equal (Ok 'C') (DRec.get BaseTypes.Chary BaseTypes.basevalues |> DRec.toChar)
+                \_ -> Expect.equal (Ok 'C') (DRec.get BaseTypes.Chary BaseTypes.values |> DRec.toChar)
             , test "get as Float" <|
-                \_ -> Expect.equal (Ok 3.14) (DRec.get BaseTypes.Floaty BaseTypes.basevalues |> DRec.toFloat)
+                \_ -> Expect.equal (Ok 3.14) (DRec.get BaseTypes.Floaty BaseTypes.values |> DRec.toFloat)
             , test "get as Int" <|
-                \_ -> Expect.equal (Ok 1357) (DRec.get BaseTypes.Inty BaseTypes.basevalues |> DRec.toInt)
+                \_ -> Expect.equal (Ok 1357) (DRec.get BaseTypes.Inty BaseTypes.values |> DRec.toInt)
             , test "get as Json.Encode.Value" <|
-                \_ -> Expect.equal (Ok <| Json.Encode.string "JSON") (DRec.get BaseTypes.Jsony BaseTypes.basevalues |> DRec.toJson)
+                \_ -> Expect.equal (Ok <| Json.Encode.string "JSON") (DRec.get BaseTypes.Jsony BaseTypes.values |> DRec.toJson)
             , test "get as String" <|
-                \_ -> Expect.equal (Ok "lorem ipsum") (DRec.get BaseTypes.Stringy BaseTypes.basevalues |> DRec.toString)
+                \_ -> Expect.equal (Ok "lorem ipsum") (DRec.get BaseTypes.Stringy BaseTypes.values |> DRec.toString)
             ]
         , describe "JSON interop"
             [ test "Decode base types to DRec BaseFields" <|
@@ -57,16 +57,16 @@ basesuite =
                         , (Result.map (DRec.get BaseTypes.Jsony) >> Result.andThen DRec.toJson) >> Expect.equal (Ok <| Json.Encode.string "JSON")
                         , (Result.map (DRec.get BaseTypes.Stringy) >> Result.andThen DRec.toString) >> Expect.equal (Ok "lorem ipsum")
                         ]
-                        (DRec.decodeString BaseTypes.basedrec BaseTypes.basejson)
+                        (DRec.decodeString BaseTypes.init BaseTypes.json)
             , test "Encode DRec BaseFields into JSON" <|
                 \_ ->
                     let
                         json =
-                            BaseTypes.basevalues
+                            BaseTypes.values
                                 |> DRec.encoder
                                 |> Json.Encode.encode 0
                     in
-                    Expect.equal BaseTypes.basejson json
+                    Expect.equal BaseTypes.json json
             ]
         , describe "Test validations via setWith"
             [ test "failed Int assignment" <|
@@ -76,7 +76,7 @@ basesuite =
                             String.toInt >> Maybe.map DRec.fromInt
 
                         drec =
-                            BaseTypes.basevalues
+                            BaseTypes.values
                                 |> DRec.setWith BaseTypes.Inty validator "3.1"
                     in
                     Expect.all
@@ -93,7 +93,7 @@ basesuite =
                             String.toFloat >> Maybe.map DRec.fromFloat
 
                         drec =
-                            BaseTypes.basevalues
+                            BaseTypes.values
                                 |> DRec.setWith BaseTypes.Floaty validator "31a"
                     in
                     Expect.all
@@ -113,7 +113,7 @@ basesuite =
                             String.toFloat >> Maybe.map DRec.fromFloat
 
                         drec =
-                            BaseTypes.basevalues
+                            BaseTypes.values
                                 |> DRec.setWith BaseTypes.Inty validatorInt "3.1"
                                 |> DRec.setWith BaseTypes.Floaty validatorFloat "31a"
                     in

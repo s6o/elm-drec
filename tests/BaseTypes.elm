@@ -1,10 +1,10 @@
-module BaseTypes exposing (BaseFields(..), basedrec, basejson, basevalues, fieldNames)
+module BaseTypes exposing (Fields(..), fieldNames, init, json, values)
 
 import DRec exposing (DRec, DType(..), DValue(..))
 import Json.Encode
 
 
-type BaseFields
+type Fields
     = Booly
     | Chary
     | Floaty
@@ -13,7 +13,7 @@ type BaseFields
     | Stringy
 
 
-fieldNames : List BaseFields
+fieldNames : List Fields
 fieldNames =
     [ Booly
     , Chary
@@ -24,8 +24,8 @@ fieldNames =
     ]
 
 
-basedrec : DRec BaseFields
-basedrec =
+init : DRec Fields
+init =
     DRec.init
         |> DRec.field Booly DBool
         |> DRec.field Chary DChar
@@ -35,9 +35,9 @@ basedrec =
         |> DRec.field Stringy DString
 
 
-basevalues : DRec BaseFields
-basevalues =
-    basedrec
+values : DRec Fields
+values =
+    init
         |> DRec.setBool Booly True
         |> DRec.setChar Chary 'C'
         |> DRec.setFloat Floaty 3.14
@@ -46,6 +46,6 @@ basevalues =
         |> DRec.setString Stringy "lorem ipsum"
 
 
-basejson : String
-basejson =
+json : String
+json =
     """{"booly":true,"chary":67,"floaty":3.14,"inty":1357,"jsony":"JSON","stringy":"lorem ipsum"}"""
