@@ -1,11 +1,11 @@
 module DRec exposing
     ( DType(..), DValue(..), DRec, DSchema, DField, DError(..), init, initWith, field
     , clear, setWith
-    , setArray, setBool, setChar, setDRec, setFloat, setInt, setJson, setList, setMaybe, setString
+    , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt, setJson, setList, setMaybe, setString
     , decoder, decodeValue, decodeString, encoder
-    , errorMessages, fieldBuffer, fieldError, fieldNames, get, getAs, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
-    , fromArray, fromBool, fromChar, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
-    , toArray, toBool, toChar, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
+    , errorMessages, fieldBuffer, fieldError, fieldNames, get, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
+    , fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
+    , toArray, toBool, toChar, toCharCode, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
     )
 
 {-| Elm `Dict` based record with field name and type validation and automatic
@@ -43,7 +43,7 @@ error/success chain.
 These functions wrap `setWith` with a type reflected in their name. The first
 argument, as with `setWith` is the ADT specified for `DRec a`'s field names.
 
-@docs setArray, setBool, setChar, setDRec, setFloat, setInt, setJson, setList, setMaybe, setString
+@docs setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt, setJson, setList, setMaybe, setString
 
 
 ## JSON interop
@@ -57,7 +57,7 @@ Create decoders and encoders based on the defined schema.
 
 Helper functions to query the state and values of a `DRec a` and of its member fields.
 
-@docs errorMessages, fieldBuffer, fieldError, fieldNames, get, getAs, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
+@docs errorMessages, fieldBuffer, fieldError, fieldNames, get, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
 
 
 # Decode
@@ -65,7 +65,7 @@ Helper functions to query the state and values of a `DRec a` and of its member f
 Decode from Elm base types to `DRec a`, as you would decode from a JSON string
 to an Elm record/types.
 
-@docs fromArray, fromBool, fromChar, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
+@docs fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
 
 
 # Encode
@@ -73,7 +73,7 @@ to an Elm record/types.
 Encode to Elm base types from a `DRec a`, as you would encode to a JSON string
 from an Elm record/types.
 
-@docs toArray, toBool, toChar, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
+@docs toArray, toBool, toChar, toCharCode, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
 
 -}
 
@@ -398,6 +398,13 @@ setChar fld val drec =
     setWith fld (fromChar >> Just) val drec
 
 
+{-| Set a `Int` value via `Char.fromCode` for specified `DRec a` field.
+-}
+setCharCode : a -> Int -> DRec a -> DRec a
+setCharCode fld val drec =
+    setWith fld (fromCharCode >> Just) val drec
+
+
 {-| Set a sub `DRec a` for spcified `DRec a` field.
 -}
 setDRec : a -> DRec a -> DRec a -> DRec a
@@ -651,22 +658,6 @@ get adt (DRec r) =
                     Ok dfield
 
 
-{-| For a valid field defined in schema return its value as a result of the fromField
-function specified as the 2nd argument.
-
-    import User exposing (..)
-
-
-    -- ...
-    email =
-        getAs User.Email DRec.toString drecUser
-
--}
-getAs : a -> (Result DError (DField a) -> Result DError b) -> DRec a -> Result DError b
-getAs adt fromField drec =
-    get adt drec |> fromField
-
-
 {-| Check if a schema has been specified.
 -}
 hasSchema : DRec a -> Bool
@@ -777,6 +768,13 @@ fromBool v =
 fromChar : Char -> DField a
 fromChar v =
     DChar_ v
+
+
+{-| Convert from `Int` via `Char.fromCode` to `DField a`.
+-}
+fromCharCode : Int -> DField a
+fromCharCode v =
+    Char.fromCode v |> DChar_
 
 
 {-| Convert from `DRec a` to `DField a`.
@@ -908,6 +906,15 @@ toChar rf =
                     "toChar"
                         |> TypeMismatch
                         |> Err
+
+
+{-| Convert from `DField a` to `Int` via `Char.toCode`.
+-}
+toCharCode : Result DError (DField a) -> Result DError Int
+toCharCode rf =
+    toChar rf
+        |> Result.map Char.toCode
+        |> Result.mapError (\_ -> TypeMismatch "toCharCode")
 
 
 {-| Convert from `DField a` to `DRec a`.
