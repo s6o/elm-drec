@@ -15,7 +15,7 @@ provide decoding and encoding based on `DRec a`'s schema.
 * ADT based fields / schema
 * schema and type validation
 * automatic schema based decoding and encoding from and to JSON
-* user input buffering, input validation and customizable validation failure messages
+* user input buffering, input validation and validation error queries
 * `Dict comparable v`, `Set comparable` and tuple member support excluded,
   due to issues with `comparable` and trying to keep the base type `DRec a`
   to a single parameterization
