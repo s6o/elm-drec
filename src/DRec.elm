@@ -634,8 +634,13 @@ fieldNames (DRec r) =
 get : a -> DRec a -> Result DError (DField a)
 get adt (DRec r) =
     let
+        {-
+           -- This produces weird behaviour in nested records, possible Elm issue
+           fld =
+               r.toField adt
+        -}
         fld =
-            r.toField adt
+            toSnakeCase adt
     in
     case
         Dict.get fld r.schema
