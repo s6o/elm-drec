@@ -635,9 +635,13 @@ get : a -> DRec a -> Result DError (DField a)
 get adt (DRec r) =
     let
         {-
-           -- This produces weird behaviour in nested records, possible Elm issue
+           -- This fails, for sub-record, making the initWith rather useless and
+           -- the default init does not work - WTF?!
            fld =
                r.toField adt
+        -}
+        {-
+           -- being explicit/hard-coded works
         -}
         fld =
             toSnakeCase adt
