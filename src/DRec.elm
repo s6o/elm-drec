@@ -859,7 +859,7 @@ toArray toValue rf =
                         |> Ok
 
                 _ ->
-                    "toArray"
+                    ("DRec.toArray " ++ Debug.toString dfield)
                         |> TypeMismatch
                         |> Err
 
@@ -881,7 +881,7 @@ toBool rf =
                     Ok v
 
                 _ ->
-                    "toBool"
+                    ("DRec.toBool " ++ Debug.toString dfield)
                         |> TypeMismatch
                         |> Err
 
@@ -903,7 +903,7 @@ toChar rf =
                     Ok v
 
                 _ ->
-                    "toChar"
+                    ("DRec.toChar " ++ Debug.toString dfield)
                         |> TypeMismatch
                         |> Err
 
@@ -914,7 +914,7 @@ toCharCode : Result DError (DField a) -> Result DError Int
 toCharCode rf =
     toChar rf
         |> Result.map Char.toCode
-        |> Result.mapError (\_ -> TypeMismatch "toCharCode")
+        |> Result.mapError (\_ -> TypeMismatch "DRec.toCharCode")
 
 
 {-| Convert from `DField a` to `DRec a`.
@@ -934,7 +934,7 @@ toDRec rf =
                     Ok v
 
                 _ ->
-                    "toDRec"
+                    ("DRec.toDRec " ++ Debug.toString dfield)
                         |> TypeMismatch
                         |> Err
 
@@ -956,7 +956,7 @@ toFloat rf =
                     Ok v
 
                 _ ->
-                    "toFloat"
+                    ("DRec.toFloat " ++ Debug.toString dfield)
                         |> TypeMismatch
                         |> Err
 
@@ -978,7 +978,7 @@ toInt rf =
                     Ok v
 
                 _ ->
-                    "toInt"
+                    ("DRec.toInt " ++ Debug.toString dfield)
                         |> TypeMismatch
                         |> Err
 
@@ -1000,7 +1000,7 @@ toJson rf =
                     Ok v
 
                 _ ->
-                    "toJson"
+                    ("DRec.toJson " ++ Debug.toString dfield)
                         |> TypeMismatch
                         |> Err
 
@@ -1027,7 +1027,7 @@ toList toValue rf =
                         |> Ok
 
                 _ ->
-                    "toArray"
+                    ("DRec.toList " ++ Debug.toString dfield)
                         |> TypeMismatch
                         |> Err
 
@@ -1074,7 +1074,7 @@ toMaybe toValue rf =
                                 |> Ok
 
                 _ ->
-                    "toMaybe"
+                    ("DRec.toMaybe " ++ Debug.toString dfield)
                         |> TypeMismatch
                         |> Err
 
@@ -1096,7 +1096,7 @@ toString rf =
                     Ok v
 
                 _ ->
-                    "toString"
+                    ("DRec.toString " ++ Debug.toString dfield)
                         |> TypeMismatch
                         |> Err
 
