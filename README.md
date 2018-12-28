@@ -15,7 +15,7 @@ provide decoding and encoding based on `DRec a`'s schema.
 * ADT based fields / schema
 * schema and type validation
 * automatic schema based decoding and encoding from and to JSON
-* user input buffering, input validation and customizable failure message
+* user input buffering, input validation and customizable validation failure messages
 * `Dict comparable v`, `Set comparable` and tuple member support excluded,
   due to issues with `comparable` and trying to keep the base type `DRec a`
   to a single parameterization
@@ -39,7 +39,7 @@ provide decoding and encoding based on `DRec a`'s schema.
 
 ```elm
 -- Elm record                               elm-drec
-
+module Schema exposing (..)                 module Schema exposing (..)
 
 import Array exposing (Array)               import Dict exposing (Dict)
 import Dict exposing (Dict)                 import DRec exposing (DError, DRec, DType(..), DValue(..), init, field, schema)
@@ -78,6 +78,7 @@ type alias Model =                          type alias Model =
 ```elm
 -- Elm                                      elm-drec
 
+import Schema exposing (..)                 import Schema exposing (..)
 import Json.Decode                          import DRec
     exposing
         ( Decoder, field
@@ -117,7 +118,7 @@ init =
                 json                                        json
                     |> Result.map                               |> Result.map
                         (\c ->                                      (\drec ->
-                            Dict.insert                                 DRec.get "id" drec
+                            Dict.insert                                 DRec.get Id drec
                                 c.id                                        |> DRec.toInt
                                 c                                           |> Result.map (\i -> Dict.insert i drec Dict.empty)
                                 Dict.empty                                  |> Result.withDefault Dict.empty
@@ -132,6 +133,7 @@ init =
 -- Elm                                      elm-drec
 
 import Array
+import Schema exposing (..)                 import Schema exposing (..)
 import Json.Encode                          import DRec
     exposing
         ( array
