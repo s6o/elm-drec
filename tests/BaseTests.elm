@@ -45,6 +45,19 @@ basesuite =
                 \_ -> Expect.equal (Ok <| Json.Encode.string "JSON") (DRec.get BaseTypes.Jsony BaseTypes.values |> DRec.toJson)
             , test "get as String" <|
                 \_ -> Expect.equal (Ok "lorem ipsum") (DRec.get BaseTypes.Stringy BaseTypes.values |> DRec.toString)
+            , test "get as DRec" <|
+                \_ ->
+                    let
+                        subrec =
+                            DRec.get BaseTypes.Suby BaseTypes.values
+                                |> DRec.toDRec
+                                |> Result.withDefault BaseTypes.unit
+                    in
+                    Expect.all
+                        [ DRec.get BaseTypes.Abbr >> DRec.toString >> Expect.equal (Ok "m")
+                        , DRec.get BaseTypes.Long >> DRec.toString >> Expect.equal (Ok "meters")
+                        ]
+                        subrec
             ]
         , describe "JSON interop"
             [ test "Decode base types to DRec BaseFields" <|
