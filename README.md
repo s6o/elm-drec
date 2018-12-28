@@ -15,7 +15,7 @@ provide decoding and encoding based on `DRec a`'s schema.
 * ADT based fields / schema
 * schema and type validation
 * automatic schema based decoding and encoding from and to JSON
-* user input buffering (partial input validation and failure handling)
+* user input buffering, input validation and customizable failure message
 * `Dict comparable v`, `Set comparable` and tuple member support excluded,
   due to issues with `comparable` and trying to keep the base type `DRec a`
   to a single parameterization
@@ -44,13 +44,16 @@ provide decoding and encoding based on `DRec a`'s schema.
 import Array exposing (Array)               import Dict exposing (Dict)
 import Dict exposing (Dict)                 import DRec exposing (DError, DRec, DType(..), DValue(..), init, field, schema)
 
-                                            type AddressField
-                                                = StreetName
+                                            type Fields
+                                                = Id
+                                                | Name
+                                                | Address
+                                                | StreetName        -- address
                                                 | BuildingNumber
                                                 | SubNumber
                                                 | DeliveryDays
 
-type alias Address =                        address : DRec AddressField
+type alias Address =                        address : DRec Fields
     { streetName : String                   address =
     , buildingNumer : Int                       init
     , subNumber : Maybe Int                         |> field StreetName DString
@@ -58,9 +61,7 @@ type alias Address =                        address : DRec AddressField
     }                                               |> field SubNumber (DMaybe VInt)
                                                     |> field DeliveryDays (DArray VInt)
 
-                                            type CustomerField = Id | Name | Address
-
-type alias Customer =                       customer : DRec CustomerFields
+type alias Customer =                       customer : DRec Fields
     { id : Int                              customer =
     , name : String                             init
     , address : Address                             |> field Id DInt
@@ -68,7 +69,7 @@ type alias Customer =                       customer : DRec CustomerFields
                                                     |> field Address (DDRec <| schema address)
 
 type alias Model =                          type alias Model =
-    { customers : Dict Int Customer             { customers : Dict Int (DRec CustomerFields)
+    { customers : Dict Int Customer             { customers : Dict Int (DRec Fields)
     }                                           }
 ```
 
