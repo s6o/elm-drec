@@ -126,7 +126,7 @@ type DRec a
         , schema : Dict String DType
         , sfields : List String
         , store : Dict String (DField a)
-        , toField : a -> String
+        , toField : String -> String
         }
 
 
@@ -148,7 +148,7 @@ type DField a
 {-| `DRec a` schema.
 -}
 type DSchema
-    = DSchema ( List String, Dict String DType )
+    = DSchema ( List String, Dict String DType, String -> String )
 
 
 {-| @private
@@ -178,7 +178,7 @@ fieldType fname dfield (DRec r) =
             DChar
 
         DDRec_ (DRec sr) ->
-            DDRec (DSchema ( sr.sfields, sr.schema ))
+            DDRec (DSchema ( sr.sfields, sr.schema, sr.toField ))
 
         DFloat_ _ ->
             DFloat
@@ -258,7 +258,7 @@ type DError
 
 {-| Initialize a `DRec a` with an ADT for fields and with the default ADT to `String` function.
 
-The default ADT to `String` conversion is from 'camelCase' to 'snake\_case'. To
+The default ADT to `String` conversion is from 'PascalCase' to 'snake\_case'. To
 customize the conversion use `initWith`.
 
 -}
@@ -268,9 +268,16 @@ init =
 
 
 {-| Initialize a `DRec a` with a custom ADT to `String` function.
+
+The custom ADT to `String` (a.k.a recase) function is applied/composed with
+`Debug.toString` as `Debug.toString >> recaseFn`.
+
+So the recase function needs to take into account that it will receive its input
+as a result/return from `Debug.toString`.
+
 -}
-initWith : (a -> String) -> DRec a
-initWith toField =
+initWith : (String -> String) -> DRec a
+initWith recaseFn =
     DRec
         { buffers = Dict.empty
         , errors = Dict.empty
@@ -278,15 +285,15 @@ initWith toField =
         , schema = Dict.empty
         , sfields = []
         , store = Dict.empty
-        , toField = toField
+        , toField = recaseFn
         }
 
 
 {-| @private
 -}
-toSnakeCase : a -> String
+toSnakeCase : String -> String
 toSnakeCase adt =
-    Debug.toString adt
+    adt
         |> String.foldl
             (\c accum ->
                 if List.isEmpty accum then
@@ -345,8 +352,11 @@ toSnakeCase adt =
 field : a -> DType -> DRec a -> DRec a
 field adt dtype (DRec r) =
     let
+        recaseFn =
+            Debug.toString >> r.toField
+
         rfield =
-            r.toField adt
+            recaseFn adt
     in
     case
         Dict.get rfield r.schema
@@ -355,7 +365,7 @@ field adt dtype (DRec r) =
             DRec
                 { r
                     | fields = r.fields ++ [ adt ]
-                    , sfields = r.sfields ++ [ r.toField adt ]
+                    , sfields = r.sfields ++ [ recaseFn adt ]
                     , schema = Dict.insert rfield dtype r.schema
                 }
 
@@ -493,7 +503,7 @@ For quering the error and input buffer use `fieldError` and `fieldBuffer` respec
 -}
 setWith : a -> (b -> Maybe (DField a)) -> b -> DRec a -> DRec a
 setWith adt toValue value (DRec r) =
-    setWithP (r.toField adt) toValue value (DRec r)
+    setWithP ((Debug.toString >> r.toField) adt) toValue value (DRec r)
 
 
 {-| @private
@@ -611,14 +621,14 @@ errorMessages (DRec r) =
 -}
 fieldBuffer : a -> DRec a -> Maybe String
 fieldBuffer adt (DRec r) =
-    Dict.get (r.toField adt) r.buffers
+    Dict.get ((Debug.toString >> r.toField) adt) r.buffers
 
 
 {-| Query error message for a field.
 -}
 fieldError : a -> DRec a -> Maybe String
 fieldError adt (DRec r) =
-    Dict.get (r.toField adt) r.errors
+    Dict.get ((Debug.toString >> r.toField) adt) r.errors
         |> Maybe.map derrorString
 
 
@@ -634,17 +644,8 @@ fieldNames (DRec r) =
 get : a -> DRec a -> Result DError (DField a)
 get adt (DRec r) =
     let
-        {-
-           -- This fails, for sub-record, making the initWith rather useless and
-           -- the default init does not work - WTF?!
-           fld =
-               r.toField adt
-        -}
-        {-
-           -- being explicit/hard-coded works
-        -}
         fld =
-            toSnakeCase adt
+            (Debug.toString >> r.toField) adt
     in
     case
         Dict.get fld r.schema
@@ -750,7 +751,7 @@ isValidWith fields (DRec r) =
 -}
 schema : DRec a -> DSchema
 schema (DRec r) =
-    DSchema ( r.sfields, r.schema )
+    DSchema ( r.sfields, r.schema, r.toField )
 
 
 
@@ -1158,7 +1159,7 @@ fieldDecoder fname dtype drec =
                     Json.Decode.array (Json.Decode.map Char.fromCode Json.Decode.int)
                         |> arrayDecoder fname drec fromChar
 
-                VDRec (DSchema ( forder, stypes )) ->
+                VDRec (DSchema ( forder, stypes, recaseFn )) ->
                     let
                         subRec =
                             DRec
@@ -1168,7 +1169,7 @@ fieldDecoder fname dtype drec =
                                 , sfields = forder
                                 , schema = stypes
                                 , store = Dict.empty
-                                , toField = Debug.toString
+                                , toField = recaseFn
                                 }
                     in
                     Json.Decode.array (subDecoder subRec)
@@ -1198,7 +1199,7 @@ fieldDecoder fname dtype drec =
             Json.Decode.field fname (Json.Decode.map Char.fromCode Json.Decode.int)
                 |> Json.Decode.map (\v -> setWithP fname (fromChar >> Just) v drec)
 
-        DDRec (DSchema ( forder, stypes )) ->
+        DDRec (DSchema ( forder, stypes, recaseFn )) ->
             let
                 subRec =
                     DRec
@@ -1208,7 +1209,7 @@ fieldDecoder fname dtype drec =
                         , sfields = forder
                         , schema = stypes
                         , store = Dict.empty
-                        , toField = Debug.toString
+                        , toField = recaseFn
                         }
             in
             Json.Decode.field fname (subDecoder subRec)
@@ -1236,7 +1237,7 @@ fieldDecoder fname dtype drec =
                     Json.Decode.list (Json.Decode.map Char.fromCode Json.Decode.int)
                         |> listDecoder fname drec fromChar
 
-                VDRec (DSchema ( forder, stypes )) ->
+                VDRec (DSchema ( forder, stypes, recaseFn )) ->
                     let
                         subRec =
                             DRec
@@ -1246,7 +1247,7 @@ fieldDecoder fname dtype drec =
                                 , sfields = forder
                                 , schema = stypes
                                 , store = Dict.empty
-                                , toField = Debug.toString
+                                , toField = recaseFn
                                 }
                     in
                     Json.Decode.list (subDecoder subRec)
@@ -1278,7 +1279,7 @@ fieldDecoder fname dtype drec =
                     Json.Decode.maybe (Json.Decode.field fname (Json.Decode.map Char.fromCode Json.Decode.int))
                         |> maybeDecoder fname drec fromChar
 
-                VDRec (DSchema ( forder, stypes )) ->
+                VDRec (DSchema ( forder, stypes, recaseFn )) ->
                     let
                         subRec =
                             DRec
@@ -1288,7 +1289,7 @@ fieldDecoder fname dtype drec =
                                 , sfields = forder
                                 , schema = stypes
                                 , store = Dict.empty
-                                , toField = Debug.toString
+                                , toField = recaseFn
                                 }
                     in
                     Json.Decode.maybe (Json.Decode.field fname (subDecoder subRec))
