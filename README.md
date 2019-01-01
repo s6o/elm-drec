@@ -32,6 +32,7 @@ provide decoding and encoding based on `DRec a`'s schema.
 * List (Bool, Char, DRec, Float, Int, Json.Encode.Value, String, Time.Posix)
 * Maybe (Bool, Char, DRec, Float, Int, Json.Encode.Value, String, Time.Posix)
 * String
+* Time.Posix
 
 ## Usage examples
 
