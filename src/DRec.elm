@@ -1,11 +1,11 @@
 module DRec exposing
     ( DType(..), DValue(..), DRec, DSchema, DField, DError(..), init, initWith, field
     , clear, setWith
-    , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt, setJson, setList, setMaybe, setString
+    , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt, setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
     , decoder, decodeValue, decodeString, encoder
     , errorMessages, fieldBuffer, fieldError, fieldNames, get, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
-    , fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
-    , toArray, toBool, toChar, toCharCode, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
+    , fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromPosix, fromPosixEpoch, fromString
+    , toArray, toBool, toChar, toCharCode, toDRec, toFloat, toInt, toJson, toList, toMaybe, toPosix, toPosixEpoch, toString
     )
 
 {-| Elm `Dict` based record with field name and type validation and automatic
@@ -43,7 +43,7 @@ error/success chain.
 These functions wrap `setWith` with a type reflected in their name. The first
 argument, as with `setWith` is the ADT specified for `DRec a`'s field names.
 
-@docs setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt, setJson, setList, setMaybe, setString
+@docs setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt, setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
 
 
 ## JSON interop
@@ -65,7 +65,7 @@ Helper functions to query the state and values of a `DRec a` and of its member f
 Decode from Elm base types to `DRec a`, as you would decode from a JSON string
 to an Elm record/types.
 
-@docs fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
+@docs fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromPosix, fromPosixEpoch, fromString
 
 
 # Encode
@@ -73,7 +73,7 @@ to an Elm record/types.
 Encode to Elm base types from a `DRec a`, as you would encode to a JSON string
 from an Elm record/types.
 
-@docs toArray, toBool, toChar, toCharCode, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
+@docs toArray, toBool, toChar, toCharCode, toDRec, toFloat, toInt, toJson, toList, toMaybe, toPosix, toPosixEpoch, toString
 
 -}
 
@@ -82,6 +82,7 @@ import Char exposing (Char)
 import Dict exposing (Dict)
 import Json.Decode exposing (Decoder)
 import Json.Encode
+import Time exposing (Posix)
 
 
 
@@ -101,6 +102,7 @@ type DType
     | DJson
     | DList DValue
     | DMaybe DValue
+    | DPosix
     | DString
 
 
@@ -113,6 +115,7 @@ type DValue
     | VFloat
     | VInt
     | VJson
+    | VPosix
     | VString
 
 
@@ -142,6 +145,7 @@ type DField a
     | DJson_ Json.Encode.Value
     | DList_ (List (DField a))
     | DMaybe_ (Maybe (DField a))
+    | DPosix_ Posix
     | DString_ String
 
 
@@ -209,6 +213,9 @@ fieldType fname dfield (DRec r) =
                         |> Maybe.map DMaybe
                         |> Maybe.withDefault schemaType
 
+        DPosix_ _ ->
+            DPosix
+
         DString_ _ ->
             DString
 
@@ -235,6 +242,9 @@ fieldSubType fname dfield drec =
 
         DJson ->
             Just VJson
+
+        DPosix ->
+            Just VPosix
 
         DString ->
             Just VString
@@ -455,6 +465,20 @@ setList fld fromValue vals drec =
 setMaybe : a -> (b -> DField a) -> Maybe b -> DRec a -> DRec a
 setMaybe fld fromValue vals drec =
     setWith fld (fromMaybe fromValue >> Just) vals drec
+
+
+{-| Set a `Posix` value for specified `DRec a` field.
+-}
+setPosix : a -> Posix -> DRec a -> DRec a
+setPosix fld val drec =
+    setWith fld (fromPosix >> Just) val drec
+
+
+{-| Set a `Int` value via `Time.millisToPosix` for specified `DRec a` field.
+-}
+setPosixEpoch : a -> Int -> DRec a -> DRec a
+setPosixEpoch fld val drec =
+    setWith fld (fromPosixEpoch >> Just) val drec
 
 
 {-| Set a `String` value for specified `DRec a` field.
@@ -835,6 +859,20 @@ fromMaybe f mv =
             DMaybe_ (Just (f v))
 
 
+{-| Convert from `Posix` to `DField a`.
+-}
+fromPosix : Posix -> DField a
+fromPosix v =
+    DPosix_ v
+
+
+{-| Convert from Unix epoch in milliseconds to `Posix` to `DField a`.
+-}
+fromPosixEpoch : Int -> DField a
+fromPosixEpoch v =
+    Time.millisToPosix v |> DPosix_
+
+
 {-| Convert from `String` to `DField a`.
 -}
 fromString : String -> DField a
@@ -1089,6 +1127,37 @@ toMaybe toValue rf =
                         |> Err
 
 
+{-| Convert from `DField a` to `Posix`.
+-}
+toPosix : Result DError (DField a) -> Result DError Posix
+toPosix rf =
+    case rf of
+        Err x ->
+            Err x
+
+        Ok dfield ->
+            case dfield of
+                DPosix_ v ->
+                    Ok v
+
+                DMaybe_ (Just (DPosix_ v)) ->
+                    Ok v
+
+                _ ->
+                    ("DRec.toPosix " ++ Debug.toString dfield)
+                        |> TypeMismatch
+                        |> Err
+
+
+{-| Convert from `DField a` to `Int` via `Time.posixToMillis`.
+-}
+toPosixEpoch : Result DError (DField a) -> Result DError Int
+toPosixEpoch rf =
+    toPosix rf
+        |> Result.map Time.posixToMillis
+        |> Result.mapError (\_ -> TypeMismatch "DRec.toPosixEpoch")
+
+
 {-| Convert from `DField a` to `String`.
 -}
 toString : Result DError (DField a) -> Result DError String
@@ -1187,6 +1256,10 @@ fieldDecoder fname dtype drec =
                     Json.Decode.array Json.Decode.value
                         |> arrayDecoder fname drec fromJson
 
+                VPosix ->
+                    Json.Decode.array (Json.Decode.map Time.millisToPosix Json.Decode.int)
+                        |> arrayDecoder fname drec fromPosix
+
                 VString ->
                     Json.Decode.array Json.Decode.string
                         |> arrayDecoder fname drec fromString
@@ -1265,6 +1338,10 @@ fieldDecoder fname dtype drec =
                     Json.Decode.list Json.Decode.value
                         |> listDecoder fname drec fromJson
 
+                VPosix ->
+                    Json.Decode.list (Json.Decode.map Time.millisToPosix Json.Decode.int)
+                        |> listDecoder fname drec fromPosix
+
                 VString ->
                     Json.Decode.list Json.Decode.string
                         |> listDecoder fname drec fromString
@@ -1307,9 +1384,17 @@ fieldDecoder fname dtype drec =
                     Json.Decode.maybe (Json.Decode.field fname Json.Decode.value)
                         |> maybeDecoder fname drec fromJson
 
+                VPosix ->
+                    Json.Decode.maybe (Json.Decode.field fname (Json.Decode.map Time.millisToPosix Json.Decode.int))
+                        |> maybeDecoder fname drec fromPosix
+
                 VString ->
                     Json.Decode.maybe (Json.Decode.field fname Json.Decode.string)
                         |> maybeDecoder fname drec fromString
+
+        DPosix ->
+            Json.Decode.field fname (Json.Decode.map Time.millisToPosix Json.Decode.int)
+                |> Json.Decode.map (\v -> setWithP fname (fromPosix >> Just) v drec)
 
         DString ->
             Json.Decode.field fname Json.Decode.string
@@ -1463,6 +1548,9 @@ objectField fld accum dfield =
 
                 Just df ->
                     objectField fld accum df
+
+        DPosix_ c ->
+            ( fld, Time.posixToMillis c |> Json.Encode.int ) :: accum
 
         DString_ s ->
             ( fld, Json.Encode.string s ) :: accum

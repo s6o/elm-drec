@@ -22,15 +22,15 @@ provide decoding and encoding based on `DRec a`'s schema.
 
 ### Supported types
 
-* Array (Bool, Char, DRec, Float, Int, Json.Encode.Value, String)
+* Array (Bool, Char, DRec, Float, Int, Json.Encode.Value, String, Time.Posix)
 * Bool
 * Char
 * DRec (nesting / sub-records)
 * Float
 * Int
 * Json.Encode.Value
-* List (Bool, Char, DRec, Float, Int, Json.Encode.Value, String)
-* Maybe (Bool, Char, DRec, Float, Int, Json.Encode.Value, String)
+* List (Bool, Char, DRec, Float, Int, Json.Encode.Value, String, Time.Posix)
+* Maybe (Bool, Char, DRec, Float, Int, Json.Encode.Value, String, Time.Posix)
 * String
 
 ## Usage examples

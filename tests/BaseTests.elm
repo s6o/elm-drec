@@ -5,6 +5,7 @@ import DRec
 import Expect exposing (Expectation)
 import Json.Encode
 import Test exposing (..)
+import Time
 
 
 basesuite : Test
@@ -43,6 +44,8 @@ basesuite =
                 \_ -> Expect.equal (Ok 1357) (DRec.get BaseTypes.Inty BaseTypes.values |> DRec.toInt)
             , test "get as Json.Encode.Value" <|
                 \_ -> Expect.equal (Ok <| Json.Encode.string "JSON") (DRec.get BaseTypes.Jsony BaseTypes.values |> DRec.toJson)
+            , test "get as Posix" <|
+                \_ -> Expect.equal (Ok <| Time.millisToPosix 1546300800000) (DRec.get BaseTypes.Posixy BaseTypes.values |> DRec.toPosix)
             , test "get as String" <|
                 \_ -> Expect.equal (Ok "lorem ipsum") (DRec.get BaseTypes.Stringy BaseTypes.values |> DRec.toString)
             , test "get as DRec" <|
@@ -68,6 +71,7 @@ basesuite =
                         , (Result.map (DRec.get BaseTypes.Floaty) >> Result.andThen DRec.toFloat) >> Expect.equal (Ok 3.14)
                         , (Result.map (DRec.get BaseTypes.Inty) >> Result.andThen DRec.toInt) >> Expect.equal (Ok 1357)
                         , (Result.map (DRec.get BaseTypes.Jsony) >> Result.andThen DRec.toJson) >> Expect.equal (Ok <| Json.Encode.string "JSON")
+                        , (Result.map (DRec.get BaseTypes.Posixy) >> Result.andThen DRec.toPosix) >> Expect.equal (Ok <| Time.millisToPosix 1546300800000)
                         , (Result.map (DRec.get BaseTypes.Stringy) >> Result.andThen DRec.toString) >> Expect.equal (Ok "lorem ipsum")
                         ]
                         (DRec.decodeString BaseTypes.init BaseTypes.json)

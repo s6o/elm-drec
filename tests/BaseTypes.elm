@@ -10,6 +10,7 @@ type Fields
     | Floaty
     | Inty
     | Jsony
+    | Posixy
     | Stringy
     | Suby
     | Abbr
@@ -23,6 +24,7 @@ fieldNames =
     , Floaty
     , Inty
     , Jsony
+    , Posixy
     , Stringy
     , Suby
     ]
@@ -43,6 +45,7 @@ init =
         |> DRec.field Floaty DFloat
         |> DRec.field Inty DInt
         |> DRec.field Jsony DJson
+        |> DRec.field Posixy DPosix
         |> DRec.field Stringy DString
         |> DRec.field Suby (DDRec <| DRec.schema unit)
 
@@ -62,10 +65,11 @@ values =
         |> DRec.setFloat Floaty 3.14
         |> DRec.setInt Inty 1357
         |> DRec.setJson Jsony (Json.Encode.string "JSON")
+        |> DRec.setPosixEpoch Posixy 1546300800000
         |> DRec.setString Stringy "lorem ipsum"
         |> DRec.setDRec Suby unitValues
 
 
 json : String
 json =
-    """{"booly":true,"chary":67,"floaty":3.14,"inty":1357,"jsony":"JSON","stringy":"lorem ipsum","suby":{"abbr":"m","long":"meters"}}"""
+    """{"booly":true,"chary":67,"floaty":3.14,"inty":1357,"jsony":"JSON","posixy":1546300800000,"stringy":"lorem ipsum","suby":{"abbr":"m","long":"meters"}}"""
