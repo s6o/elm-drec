@@ -43,7 +43,7 @@ fieldNames =
 unit : DRec Fields
 unit =
     DRec.init
-        |> DRec.field Abbr DString
+        |> DRec.fieldWithMessage Abbr DString unitError
         |> DRec.field Long DString
 
 
@@ -69,7 +69,6 @@ unitValues : DRec Fields
 unitValues =
     unit
         |> DRec.setString Abbr "m"
-        |> DRec.validationMessage Abbr unitError
         |> DRec.setString Long "meters"
 
 

@@ -1,6 +1,6 @@
 module DRec exposing
     ( DType(..), DValue(..), DRec, DSchema, DField, DError(..)
-    , init, initWith, indentDepth, field, validationMessage
+    , init, initWith, indentDepth, field, fieldWithMessage
     , clear, setWith
     , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt
     , setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
@@ -29,7 +29,7 @@ A schema definitions usually start with the `init` or `initWith` function,
 followed by several `field` functions piped after each other.
 
 @docs DType, DValue, DRec, DSchema, DField, DError
-@docs init, initWith, indentDepth, field, validationMessage
+@docs init, initWith, indentDepth, field, fieldWithMessage
 
 
 ## Values
@@ -164,7 +164,13 @@ type DField a
 {-| `DRec a` schema.
 -}
 type DSchema
-    = DSchema { fields : List String, schema : Dict String DType, recase : String -> String, indent : Int }
+    = DSchema
+        { fields : List String
+        , schema : Dict String DType
+        , recase : String -> String
+        , vdnmsg : Dict String String
+        , indent : Int
+        }
 
 
 {-| @private
@@ -194,7 +200,14 @@ fieldType fname dfield (DRec r) =
             DChar
 
         DDRec_ (DRec sr) ->
-            DDRec (DSchema { fields = sr.sfields, schema = sr.schema, recase = sr.toField, indent = sr.indent })
+            DDRec <|
+                DSchema
+                    { fields = sr.sfields
+                    , schema = sr.schema
+                    , recase = sr.toField
+                    , vdnmsg = sr.vdnmsg
+                    , indent = sr.indent
+                    }
 
         DFloat_ _ ->
             DFloat
@@ -368,8 +381,7 @@ toSnakeCase adt =
             |> DRec.field Id DInt
             |> DRec.field Email DString
             |> DRec.field Name DString
-            |> DRec.field Pin DInt
-            |> DRec.validationMessage Pin "Pin must be a numeric value > 1000 and contain at least 4 different digits"
+            |> DRec.fieldWithMessage Pin DInt "Pin must be a numeric value > 1000 and contain at least 4 different digits"
             |> DRec.field Token (DMaybe VString)
 
     -- ...
@@ -420,9 +432,10 @@ field adt dtype (DRec r) =
 
 {-| Customize the `ValidationFailed String` of `DError` for specified field.
 -}
-validationMessage : a -> String -> DRec a -> DRec a
-validationMessage adt errmsg (DRec r) =
+fieldWithMessage : a -> DType -> String -> DRec a -> DRec a
+fieldWithMessage adt dtype errmsg (DRec r) =
     DRec { r | vdnmsg = Dict.insert ((Debug.toString >> r.toField) adt) errmsg r.vdnmsg }
+        |> field adt dtype
 
 
 
@@ -839,7 +852,13 @@ isValidWith fields (DRec r) =
 -}
 schema : DRec a -> DSchema
 schema (DRec r) =
-    DSchema { fields = r.sfields, schema = r.schema, recase = r.toField, indent = r.indent }
+    DSchema
+        { fields = r.sfields
+        , schema = r.schema
+        , recase = r.toField
+        , vdnmsg = r.vdnmsg
+        , indent = r.indent
+        }
 
 
 
@@ -1292,22 +1311,8 @@ fieldDecoder fname dtype drec =
                     Json.Decode.array (Json.Decode.map Char.fromCode Json.Decode.int)
                         |> arrayDecoder fname drec fromChar
 
-                VDRec (DSchema ds) ->
-                    let
-                        subRec =
-                            DRec
-                                { buffers = Dict.empty
-                                , errors = Dict.empty
-                                , fields = []
-                                , sfields = ds.fields
-                                , schema = ds.schema
-                                , store = Dict.empty
-                                , toField = ds.recase
-                                , vdnmsg = Dict.empty
-                                , indent = ds.indent * 2
-                                }
-                    in
-                    Json.Decode.array (subDecoder subRec)
+                VDRec dschema ->
+                    Json.Decode.array (subRecord dschema |> subDecoder)
                         |> arrayDecoder fname drec fromDRec
 
                 VFloat ->
@@ -1338,22 +1343,8 @@ fieldDecoder fname dtype drec =
             Json.Decode.field fname (Json.Decode.map Char.fromCode Json.Decode.int)
                 |> Json.Decode.map (\v -> setWithP fname (fromChar >> Just) v drec)
 
-        DDRec (DSchema ds) ->
-            let
-                subRec =
-                    DRec
-                        { buffers = Dict.empty
-                        , errors = Dict.empty
-                        , fields = []
-                        , sfields = ds.fields
-                        , schema = ds.schema
-                        , store = Dict.empty
-                        , toField = ds.recase
-                        , vdnmsg = Dict.empty
-                        , indent = ds.indent * 2
-                        }
-            in
-            Json.Decode.field fname (subDecoder subRec)
+        DDRec dschema ->
+            Json.Decode.field fname (subRecord dschema |> subDecoder)
                 |> Json.Decode.map (\v -> setWithP fname (fromDRec >> Just) v drec)
 
         DFloat ->
@@ -1378,22 +1369,8 @@ fieldDecoder fname dtype drec =
                     Json.Decode.list (Json.Decode.map Char.fromCode Json.Decode.int)
                         |> listDecoder fname drec fromChar
 
-                VDRec (DSchema ds) ->
-                    let
-                        subRec =
-                            DRec
-                                { buffers = Dict.empty
-                                , errors = Dict.empty
-                                , fields = []
-                                , sfields = ds.fields
-                                , schema = ds.schema
-                                , store = Dict.empty
-                                , toField = ds.recase
-                                , vdnmsg = Dict.empty
-                                , indent = ds.indent * 2
-                                }
-                    in
-                    Json.Decode.list (subDecoder subRec)
+                VDRec dschema ->
+                    Json.Decode.list (subRecord dschema |> subDecoder)
                         |> listDecoder fname drec fromDRec
 
                 VFloat ->
@@ -1426,22 +1403,8 @@ fieldDecoder fname dtype drec =
                     Json.Decode.maybe (Json.Decode.field fname (Json.Decode.map Char.fromCode Json.Decode.int))
                         |> maybeDecoder fname drec fromChar
 
-                VDRec (DSchema ds) ->
-                    let
-                        subRec =
-                            DRec
-                                { buffers = Dict.empty
-                                , errors = Dict.empty
-                                , fields = []
-                                , sfields = ds.fields
-                                , schema = ds.schema
-                                , store = Dict.empty
-                                , toField = ds.recase
-                                , vdnmsg = Dict.empty
-                                , indent = ds.indent * 2
-                                }
-                    in
-                    Json.Decode.maybe (Json.Decode.field fname (subDecoder subRec))
+                VDRec dschema ->
+                    Json.Decode.maybe (Json.Decode.field fname (subRecord dschema |> subDecoder))
                         |> maybeDecoder fname drec fromDRec
 
                 VFloat ->
@@ -1471,6 +1434,23 @@ fieldDecoder fname dtype drec =
         DString ->
             Json.Decode.field fname Json.Decode.string
                 |> Json.Decode.map (\v -> setWithP fname (fromString >> Just) v drec)
+
+
+{-| @private
+-}
+subRecord : DSchema -> DRec a
+subRecord (DSchema ds) =
+    DRec
+        { buffers = Dict.empty
+        , errors = Dict.empty
+        , fields = []
+        , sfields = ds.fields
+        , schema = ds.schema
+        , store = Dict.empty
+        , toField = ds.recase
+        , vdnmsg = ds.vdnmsg
+        , indent = ds.indent * 2
+        }
 
 
 {-| @private
