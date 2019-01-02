@@ -12,13 +12,15 @@ provide decoding and encoding based on `DRec a`'s schema.
 
 ## Features / Trade-offs
 
-* ADT based fields / schema
+* Union Type based fields/schema
 * schema and type validation
 * automatic schema based decoding and encoding from and to JSON
 * user input buffering, input validation and validation error queries
+* customizable field validation messages
 * `Dict comparable v`, `Set comparable` and tuple member support excluded,
   due to issues with `comparable` and trying to keep the base type `DRec a`
   to a single parameterization
+* sub-records (fields) need to be part of parent's Union Type
 
 ### Supported types
 

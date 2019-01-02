@@ -1,6 +1,16 @@
-module BaseTypes exposing (Fields(..), fieldNames, init, json, unit, values)
+module BaseTypes exposing
+    ( Fields(..)
+    , fieldNames
+    , init
+    , json
+    , unit
+    , unitAbbrValidator
+    , unitError
+    , unitValues
+    , values
+    )
 
-import DRec exposing (DRec, DType(..), DValue(..))
+import DRec exposing (DField, DRec, DType(..), DValue(..))
 import Json.Encode
 
 
@@ -50,11 +60,27 @@ init =
         |> DRec.field Suby (DDRec <| DRec.schema unit)
 
 
+unitError : String
+unitError =
+    "Unit Abbr. must be single letter only."
+
+
 unitValues : DRec Fields
 unitValues =
     unit
         |> DRec.setString Abbr "m"
+        |> DRec.validationMessage Abbr unitError
         |> DRec.setString Long "meters"
+
+
+unitAbbrValidator : String -> Maybe (DField Fields)
+unitAbbrValidator abbrStr =
+    if String.length abbrStr == 1 then
+        DRec.fromString abbrStr
+            |> Just
+
+    else
+        Nothing
 
 
 values : DRec Fields

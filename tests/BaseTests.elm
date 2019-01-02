@@ -86,7 +86,15 @@ basesuite =
                     Expect.equal BaseTypes.json json
             ]
         , describe "Test validations via setWith"
-            [ test "failed Int assignment" <|
+            [ test "custom validation message" <|
+                \_ ->
+                    let
+                        drec =
+                            BaseTypes.unitValues
+                                |> DRec.setWith BaseTypes.Abbr BaseTypes.unitAbbrValidator "mm"
+                    in
+                    Expect.equal (Just BaseTypes.unitError) (DRec.fieldError BaseTypes.Abbr drec)
+            , test "failed Int assignment" <|
                 \_ ->
                     let
                         validator =

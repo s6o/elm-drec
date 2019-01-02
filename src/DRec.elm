@@ -1,11 +1,15 @@
 module DRec exposing
-    ( DType(..), DValue(..), DRec, DSchema, DField, DError(..), init, initWith, field
+    ( DType(..), DValue(..), DRec, DSchema, DField, DError(..), init, initWith, field, validationMessage
     , clear, setWith
-    , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt, setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
+    , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt
+    , setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
     , decoder, decodeValue, decodeString, encoder
-    , errorMessages, fieldBuffer, fieldError, fieldNames, get, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
-    , fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromPosix, fromPosixEpoch, fromString
-    , toArray, toBool, toChar, toCharCode, toDRec, toFloat, toInt, toJson, toList, toMaybe, toPosix, toPosixEpoch, toString
+    , errorMessages, fieldBuffer, fieldError, fieldNames, get
+    , hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
+    , fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt
+    , fromJson, fromList, fromMaybe, fromPosix, fromPosixEpoch, fromString
+    , toArray, toBool, toChar, toCharCode, toDRec, toFloat, toInt
+    , toJson, toList, toMaybe, toPosix, toPosixEpoch, toString
     )
 
 {-| Elm `Dict` based record with field name and type validation and automatic
@@ -23,7 +27,7 @@ the member fields and their types.
 A schema definitions usually start with the `init` or `initWith` function,
 followed by several `field` functions piped after each other.
 
-@docs DType, DValue, DRec, DSchema, DField, DError, init, initWith, field
+@docs DType, DValue, DRec, DSchema, DField, DError, init, initWith, field, validationMessage
 
 
 ## Values
@@ -43,7 +47,8 @@ error/success chain.
 These functions wrap `setWith` with a type reflected in their name. The first
 argument, as with `setWith` is the ADT specified for `DRec a`'s field names.
 
-@docs setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt, setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
+@docs setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt
+@docs setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
 
 
 ## JSON interop
@@ -57,7 +62,8 @@ Create decoders and encoders based on the defined schema.
 
 Helper functions to query the state and values of a `DRec a` and of its member fields.
 
-@docs errorMessages, fieldBuffer, fieldError, fieldNames, get, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
+@docs errorMessages, fieldBuffer, fieldError, fieldNames, get
+@docs hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
 
 
 # Decode
@@ -65,7 +71,8 @@ Helper functions to query the state and values of a `DRec a` and of its member f
 Decode from Elm base types to `DRec a`, as you would decode from a JSON string
 to an Elm record/types.
 
-@docs fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromPosix, fromPosixEpoch, fromString
+@docs fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt
+@docs fromJson, fromList, fromMaybe, fromPosix, fromPosixEpoch, fromString
 
 
 # Encode
@@ -73,7 +80,8 @@ to an Elm record/types.
 Encode to Elm base types from a `DRec a`, as you would encode to a JSON string
 from an Elm record/types.
 
-@docs toArray, toBool, toChar, toCharCode, toDRec, toFloat, toInt, toJson, toList, toMaybe, toPosix, toPosixEpoch, toString
+@docs toArray, toBool, toChar, toCharCode, toDRec, toFloat, toInt
+@docs toJson, toList, toMaybe, toPosix, toPosixEpoch, toString
 
 -}
 
@@ -130,6 +138,7 @@ type DRec a
         , sfields : List String
         , store : Dict String (DField a)
         , toField : String -> String
+        , vdnmsg : Dict String String
         }
 
 
@@ -296,6 +305,7 @@ initWith recaseFn =
         , sfields = []
         , store = Dict.empty
         , toField = recaseFn
+        , vdnmsg = Dict.empty
         }
 
 
@@ -330,6 +340,7 @@ toSnakeCase adt =
         = Id
         | Email
         | Name
+        | Pin
         | Token
 
     init : DRec UserField
@@ -338,6 +349,8 @@ toSnakeCase adt =
             |> DRec.field Id DInt
             |> DRec.field Email DString
             |> DRec.field Name DString
+            |> DRec.field Pin DInt
+            |> DRec.validationMessage Pin "Pin must be a numeric value > 1000 and contain at least 4 different digits"
             |> DRec.field Token (DMaybe VString)
 
     -- ...
@@ -384,6 +397,13 @@ field adt dtype (DRec r) =
                 |> DuplicateField
                 |> (\derror -> { r | errors = Dict.insert rfield derror r.errors })
                 |> DRec
+
+
+{-| Customize the `ValidationFailed String` of `DError` for specified field.
+-}
+validationMessage : a -> String -> DRec a -> DRec a
+validationMessage adt errmsg (DRec r) =
+    DRec { r | vdnmsg = Dict.insert ((Debug.toString >> r.toField) adt) errmsg r.vdnmsg }
 
 
 
@@ -502,7 +522,25 @@ For quering the error and input buffer use `fieldError` and `fieldBuffer` respec
     type Msg
         = UserEmail String
         | UserName String
+        | UserPin String
         | UserToken (Maybe String)
+
+    -- ...
+    digitDiversity : Int -> Int
+
+    -- ...
+    pinValidator : String -> Maybe (DRec.DField User.UserField)
+    pinValidator strpin =
+        String.toInt strpin
+            |> Maybe.map
+                (\pin ->
+                    if pin > 1000 && digitDiversity >= 4 then
+                        DRec.fromInt pin
+
+                    else
+                        Nothing
+                )
+            |> Maybe.withDefault Nothing
 
     -- ...
     update : Msg -> Model -> ( Model, Cmd Msg )
@@ -516,6 +554,11 @@ For quering the error and input buffer use `fieldError` and `fieldBuffer` respec
             UserName uname ->
                 -- same as above via the convenience wrapper function
                 ( { model | user = DRec.setString User.Name uname model.user }
+                , Cmd.none
+                )
+
+            UserPin strpin ->
+                ( { model | user = DRec.setWith User.Pin pinValidator strpin model.user }
                 , Cmd.none
                 )
 
@@ -580,7 +623,9 @@ setWithP fld toValue val (DRec r) =
                                 |> DRec
                     )
                 |> Maybe.withDefault
-                    (ValidationFailed fld
+                    (Dict.get fld r.vdnmsg
+                        |> Maybe.withDefault ("Validation failed, field: " ++ fld)
+                        |> ValidationFailed
                         |> setError True
                         |> DRec
                     )
@@ -617,7 +662,7 @@ derrorString derror =
             "Unknown field: " ++ msg
 
         ValidationFailed msg ->
-            "Validation failed, field: " ++ msg
+            msg
 
 
 {-| Get all errors messages as a single string.
@@ -1239,6 +1284,7 @@ fieldDecoder fname dtype drec =
                                 , schema = stypes
                                 , store = Dict.empty
                                 , toField = recaseFn
+                                , vdnmsg = Dict.empty
                                 }
                     in
                     Json.Decode.array (subDecoder subRec)
@@ -1283,6 +1329,7 @@ fieldDecoder fname dtype drec =
                         , schema = stypes
                         , store = Dict.empty
                         , toField = recaseFn
+                        , vdnmsg = Dict.empty
                         }
             in
             Json.Decode.field fname (subDecoder subRec)
@@ -1321,6 +1368,7 @@ fieldDecoder fname dtype drec =
                                 , schema = stypes
                                 , store = Dict.empty
                                 , toField = recaseFn
+                                , vdnmsg = Dict.empty
                                 }
                     in
                     Json.Decode.list (subDecoder subRec)
@@ -1367,6 +1415,7 @@ fieldDecoder fname dtype drec =
                                 , schema = stypes
                                 , store = Dict.empty
                                 , toField = recaseFn
+                                , vdnmsg = Dict.empty
                                 }
                     in
                     Json.Decode.maybe (Json.Decode.field fname (subDecoder subRec))
