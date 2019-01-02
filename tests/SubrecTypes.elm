@@ -2,10 +2,13 @@ module SubrecTypes exposing
     ( Fields(..)
     , init
     , initEntry
+    , initPretty
     , initUnit
     , json
+    , prettyJson
     , values
     , valuesEntry
+    , valuesPretty
     , valuesUnit
     )
 
@@ -45,6 +48,13 @@ init =
         |> DRec.field Entry (DDRec <| DRec.schema initEntry)
 
 
+initPretty : DRec Fields
+initPretty =
+    DRec.initWithIndent 4
+        |> DRec.field Name DString
+        |> DRec.field Entry (DDRec <| DRec.schema initEntry)
+
+
 valuesUnit : DRec Fields
 valuesUnit =
     initUnit
@@ -67,6 +77,28 @@ values =
         |> DRec.setDRec Entry valuesEntry
 
 
+valuesPretty : DRec Fields
+valuesPretty =
+    initPretty
+        |> DRec.setString Name "Level 0"
+        |> DRec.setDRec Entry valuesEntry
+
+
 json : String
 json =
     """{"name":"Level 0","entry":{"description":"Tower measurement","measurement":314.5,"unit":{"abbr":"m","long":"meters"}}}"""
+
+
+prettyJson : String
+prettyJson =
+    """{
+    "name": "Level 0",
+    "entry": {
+        "description": "Tower measurement",
+        "measurement": 314.5,
+        "unit": {
+            "abbr": "m",
+            "long": "meters"
+        }
+    }
+}"""

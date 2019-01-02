@@ -1,6 +1,6 @@
 module DRec exposing
     ( DType(..), DValue(..), DRec, DSchema, DField, DError(..)
-    , init, initWith, indentDepth, field, fieldWithMessage
+    , init, initWithIndent, initWith, field, fieldWithMessage
     , clear, setWith
     , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt
     , setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
@@ -29,7 +29,7 @@ A schema definitions usually start with the `init` or `initWith` function,
 followed by several `field` functions piped after each other.
 
 @docs DType, DValue, DRec, DSchema, DField, DError
-@docs init, initWith, indentDepth, field, fieldWithMessage
+@docs init, initWithIndent, initWith, field, fieldWithMessage
 
 
 ## Values
@@ -291,7 +291,9 @@ type DError
     | ValidationFailed String
 
 
-{-| Initialize a `DRec a` with an Union Type for fields and with the default Union Type to `String` function.
+{-| Initialize a `DRec a` with an Union Type for fields and with:
+
+    * the default Union Type to `String` function
 
 The default Union Type to `String` conversion is from 'PascalCase' to 'snake\_case'. To
 customize the conversion use `initWith`.
@@ -299,10 +301,26 @@ customize the conversion use `initWith`.
 -}
 init : DRec a
 init =
-    initWith toSnakeCase
+    initWith toSnakeCase 0
 
 
-{-| Initialize a `DRec a` with a custom Union Type to `String` function.
+{-| Initialize a `DRec a` with an Union Type for fields and with:
+
+    * the default Union Type to `String` function
+    * a custom indentation depth
+
+Negative indention depths are overridden with the default depth of 0.
+
+-}
+initWithIndent : Int -> DRec a
+initWithIndent depth =
+    initWith toSnakeCase depth
+
+
+{-| Initialize a `DRec a` with an Union Type for fields and with:
+
+    * a custom Union Type to `String` function
+    * a custom indentation depth
 
 The custom Union Type to `String` (a.k.a recase) function is applied/composed with
 `Debug.toString` as `Debug.toString >> recaseFn`.
@@ -310,9 +328,20 @@ The custom Union Type to `String` (a.k.a recase) function is applied/composed wi
 So the recase function needs to take into account that it will receive its input
 as a result/return from `Debug.toString`.
 
+String recase functions can be found in elm-community/string-extra or
+in s6o/elm-recase packages.
+
 -}
-initWith : (String -> String) -> DRec a
-initWith recaseFn =
+initWith : (String -> String) -> Int -> DRec a
+initWith recaseFn depth =
+    let
+        indentDepth =
+            if depth > 0 then
+                depth
+
+            else
+                0
+    in
     DRec
         { buffers = Dict.empty
         , errors = Dict.empty
@@ -322,22 +351,7 @@ initWith recaseFn =
         , store = Dict.empty
         , toField = recaseFn
         , vdnmsg = Dict.empty
-        , indent = 0
-        }
-
-
-{-| Set custom indentation for the generated JSON string.
--}
-indentDepth : Int -> DRec a -> DRec a
-indentDepth depth (DRec r) =
-    DRec
-        { r
-            | indent =
-                if depth > 0 then
-                    depth
-
-                else
-                    0
+        , indent = indentDepth
         }
 
 

@@ -43,4 +43,12 @@ subrecsuite =
                             |> Json.Encode.encode 0
                 in
                 Expect.equal SubrecTypes.json jsonres
+        , test "pretty encoding" <|
+            \_ ->
+                let
+                    jsonres =
+                        SubrecTypes.valuesPretty
+                            |> DRec.stringify
+                in
+                Expect.equal SubrecTypes.prettyJson jsonres
         ]
