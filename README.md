@@ -17,6 +17,7 @@ provide decoding and encoding based on `DRec a`'s schema.
 * automatic schema based decoding and encoding from and to JSON
 * user input buffering, input validation and validation error queries
 * customizable field validation messages
+* generated JSON indentation and key case (snake_case, camelCase, etc.) customization
 * `Dict comparable v`, `Set comparable` and tuple member support excluded,
   due to issues with `comparable` and trying to keep the base type `DRec a`
   to a single parameterization
@@ -39,6 +40,16 @@ provide decoding and encoding based on `DRec a`'s schema.
 ## Usage examples
 
 ### Schema
+
+When specifing schema types, the general rule is to prefix Elm's types with 'D'
+e.g. `DBool`, `DChar` etc. The 3 slight exceptions are
+
+* `Json.Encode.Value` -> `DJson`
+* `DRec a` (nesting) -> `DDRec`
+* `Time.Posix` -> `DPosix`
+
+In case of containers: `DArray v`, `DList v`, `DMaybe v` the value type `v` is
+prefixed with 'V' followed by respective Elm type name e.g. `VBool`, `VInt` etc.
 
 ```elm
 -- Elm record                               elm-drec
