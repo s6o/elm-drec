@@ -45,7 +45,7 @@ error/success chain.
 ### Convenience functions
 
 These functions wrap `setWith` with a type reflected in their name. The first
-argument, as with `setWith` is the ADT specified for `DRec a`'s field names.
+argument, as with `setWith` is the Union Type specified for `DRec a`'s field names.
 
 @docs setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt
 @docs setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
@@ -275,9 +275,9 @@ type DError
     | ValidationFailed String
 
 
-{-| Initialize a `DRec a` with an ADT for fields and with the default ADT to `String` function.
+{-| Initialize a `DRec a` with an Union Type for fields and with the default Union Type to `String` function.
 
-The default ADT to `String` conversion is from 'PascalCase' to 'snake\_case'. To
+The default Union Type to `String` conversion is from 'PascalCase' to 'snake\_case'. To
 customize the conversion use `initWith`.
 
 -}
@@ -286,9 +286,9 @@ init =
     initWith toSnakeCase
 
 
-{-| Initialize a `DRec a` with a custom ADT to `String` function.
+{-| Initialize a `DRec a` with a custom Union Type to `String` function.
 
-The custom ADT to `String` (a.k.a recase) function is applied/composed with
+The custom Union Type to `String` (a.k.a recase) function is applied/composed with
 `Debug.toString` as `Debug.toString >> recaseFn`.
 
 So the recase function needs to take into account that it will receive its input
