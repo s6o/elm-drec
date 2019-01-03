@@ -1,0 +1,6 @@
+{
+    "git.ignoreLimitWarning": true,
+    "elm.formatCommand": "./node_modules/.bin/elm-format",
+    "elm.compiler": "./node_modules/.bin/elm",
+    "elm.elmTestCompiler": "./node_modules/.bin/elm-test"
+}
