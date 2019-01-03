@@ -55,7 +55,7 @@ argument, as with `setWith` is the Union Type specified for `DRec a`'s field nam
 
 ## JSON interop
 
-Create decoders and encoders based on the defined schema.
+Create decoders and encoders or a JSON string, based on defined schema.
 
 @docs decoder, decodeValue, decodeString, encoder, stringify
 
@@ -293,7 +293,7 @@ type DError
 
 {-| Initialize a `DRec a` with an Union Type for fields and with:
 
-    * the default Union Type to `String` function
+  - the default Union Type to `String` function
 
 The default Union Type to `String` conversion is from 'PascalCase' to 'snake\_case'. To
 customize the conversion use `initWith`.
@@ -306,8 +306,8 @@ init =
 
 {-| Initialize a `DRec a` with an Union Type for fields and with:
 
-    * the default Union Type to `String` function
-    * a custom indentation depth
+  - the default Union Type to `String` function
+  - a custom indentation depth
 
 Negative indention depths are overridden with the default depth of 0.
 
@@ -322,8 +322,8 @@ initWithIndent depth =
 
 {-| Initialize a `DRec a` with an Union Type for fields and with:
 
-    * a custom Union Type to `String` function
-    * a custom indentation depth
+  - a custom Union Type to `String` function
+  - a custom indentation depth
 
 The custom Union Type to `String` (a.k.a recase) function is applied/composed with
 `Debug.toString` as `Debug.toString >> recaseFn`.
