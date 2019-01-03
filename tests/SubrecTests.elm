@@ -39,7 +39,7 @@ subrecsuite =
             \_ ->
                 let
                     jsonres =
-                        DRec.encoder SubrecTypes.values
+                        DRec.encode SubrecTypes.values
                             |> Json.Encode.encode 0
                 in
                 Expect.equal SubrecTypes.json jsonres

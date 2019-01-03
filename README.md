@@ -179,7 +179,7 @@ encoderA a =
         ]
 
 encoderC : Customer -> Json.Encode.Value
-encoder c =
+encode c =
     object
         [ ( "id", int c.id )
         , ( "name", string c.name )
@@ -192,7 +192,7 @@ stringify id model =
         |> Dict.get id
         |> Maybe.map
             (\c ->                              (\drec ->
-                encoderC c                          DRec.encoder drec
+                encoderC c                          DRec.encode drec
                     |> Json.Encode.encode 0             |> Json.Encode.encode 0
             )                                   )
 ```

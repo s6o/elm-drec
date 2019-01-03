@@ -80,7 +80,7 @@ basesuite =
                     let
                         json =
                             BaseTypes.values
-                                |> DRec.encoder
+                                |> DRec.encode
                                 |> Json.Encode.encode 0
                     in
                     Expect.equal BaseTypes.json json

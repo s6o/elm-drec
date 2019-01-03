@@ -43,7 +43,7 @@ listsuite =
             \_ ->
                 let
                     jsonres =
-                        DRec.encoder ListTypes.values
+                        DRec.encode ListTypes.values
                             |> Json.Encode.encode 0
                 in
                 Expect.equal ListTypes.json jsonres

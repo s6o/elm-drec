@@ -44,7 +44,7 @@ arraysuite =
             \_ ->
                 let
                     jsonres =
-                        DRec.encoder ArrayTypes.values
+                        DRec.encode ArrayTypes.values
                             |> Json.Encode.encode 0
                 in
                 Expect.equal ArrayTypes.json jsonres

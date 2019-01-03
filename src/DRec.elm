@@ -4,7 +4,7 @@ module DRec exposing
     , clear, setWith
     , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt
     , setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
-    , decoder, decodeValue, decodeString, encoder, stringify
+    , decoder, decodeValue, decodeString, encode, stringify
     , errorMessages, fieldBuffer, fieldError, fieldNames, get
     , hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
     , fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt
@@ -57,7 +57,7 @@ argument, as with `setWith` is the Union Type specified for `DRec a`'s field nam
 
 Create decoders and encoders or a JSON string, based on defined schema.
 
-@docs decoder, decodeValue, decodeString, encoder, stringify
+@docs decoder, decodeValue, decodeString, encode, stringify
 
 
 # Query
@@ -1527,8 +1527,8 @@ decodeString drec json =
 
 {-| Encode `DRec a` into a JSON object accordingly to `DRec a` schema.
 -}
-encoder : DRec a -> Json.Encode.Value
-encoder (DRec r) =
+encode : DRec a -> Json.Encode.Value
+encode (DRec r) =
     if Dict.isEmpty r.errors then
         subObject (DRec r)
 
@@ -1540,14 +1540,14 @@ encoder (DRec r) =
 
 This is the same as writing
 
-    DRec.encoder drec |> Json.Encode.encode depth
+    DRec.encode drec |> Json.Encode.encode depth
 
 when `depth` has been configured with `initWithIndent`.
 
 -}
 stringify : DRec a -> String
 stringify (DRec r) =
-    encoder (DRec r) |> Json.Encode.encode r.indent
+    encode (DRec r) |> Json.Encode.encode r.indent
 
 
 {-| @private

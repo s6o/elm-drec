@@ -40,7 +40,7 @@ maybesuite =
             \_ ->
                 let
                     jsonres =
-                        DRec.encoder MaybeTypes.values
+                        DRec.encode MaybeTypes.values
                             |> Json.Encode.encode 0
                 in
                 Expect.equal MaybeTypes.json jsonres
@@ -48,7 +48,7 @@ maybesuite =
             \_ ->
                 let
                     jsonres =
-                        DRec.encoder MaybeTypes.novalues
+                        DRec.encode MaybeTypes.novalues
                             |> Json.Encode.encode 0
                 in
                 Expect.equal MaybeTypes.nojson jsonres
