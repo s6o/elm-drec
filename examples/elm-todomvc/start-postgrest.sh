@@ -1,1 +1,1 @@
-postgrest postgrest.conf </dev/null > postgrest.log 2>&1 &
+./postgrest postgrest.conf </dev/null > postgrest.log 2>&1 &
