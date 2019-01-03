@@ -311,6 +311,9 @@ init =
 
 Negative indention depths are overridden with the default depth of 0.
 
+Indent is set only on the top level record. Custom indentations in sub-record
+schema definitions are ignored.
+
 -}
 initWithIndent : Int -> DRec a
 initWithIndent depth =
@@ -1535,12 +1538,11 @@ encoder (DRec r) =
 
 {-| Convert `DRec a` to JSON string with configured indentation.
 
-For a `DRec a` without sub-records and with indent depth 0, this is the same as
+This is the same as writing
 
-    DRec.encoder drec |> Json.Encode.encode 0
+    DRec.encoder drec |> Json.Encode.encode depth
 
-for cases with sub-records this automatically indents sub-records with double
-the indent depth of the parent, unless overridden in the sub-record's schema.
+when `depth` has been configured with `initWithIndent`.
 
 -}
 stringify : DRec a -> String

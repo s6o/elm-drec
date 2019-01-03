@@ -51,4 +51,12 @@ subrecsuite =
                             |> DRec.stringify
                 in
                 Expect.equal SubrecTypes.prettyJson jsonres
+        , test "pretty subs encoding with custom sub-indents has no effect" <|
+            \_ ->
+                let
+                    jsonres =
+                        SubrecTypes.valuesPrettySubs
+                            |> DRec.stringify
+                in
+                Expect.equal SubrecTypes.prettyJsonSubs jsonres
         ]
