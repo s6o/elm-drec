@@ -1,6 +1,7 @@
 module Main exposing (Model, Msg(..), initialModel, main, update, view)
 
 import Browser
+import DRec exposing (DRec, DType(..))
 import Html exposing (Html, button, div, fieldset, h1, h4, input, label, legend, text, textarea)
 import Html.Attributes exposing (style, type_, value)
 
@@ -15,8 +16,28 @@ main =
         }
 
 
+type BaseFields
+    = Booly
+    | Chary
+    | Floaty
+    | Inty
+    | Posixy
+    | Stringy
+
+
+baseRecord : DRec BaseFields
+baseRecord =
+    DRec.init
+        |> DRec.fieldWithMessage Booly DBool "Only accepted values are: true, false"
+        |> DRec.field Chary DChar
+        |> DRec.field Floaty DFloat
+        |> DRec.field Inty DInt
+        |> DRec.field Posixy DPosix
+        |> DRec.field Stringy DString
+
+
 type alias Model =
-    { dummy : String
+    { baseTypes : DRec BaseFields
     }
 
 
@@ -26,7 +47,7 @@ type Msg
 
 initialModel : ( Model, Cmd Msg )
 initialModel =
-    ( Model "dummy"
+    ( Model baseRecord
     , Cmd.none
     )
 
@@ -90,18 +111,24 @@ viewBaseTypes model =
         []
         ([ legend [] [ text "Base Types" ]
          ]
-            ++ (baseTypes
+            ++ (DRec.fieldNames model.baseTypes
                     |> List.map (\title -> viewEntry title "" Nothing)
                )
         )
 
 
-viewEntry : String -> String -> Maybe String -> Html Msg
+viewEntry : BaseFields -> String -> Maybe String -> Html Msg
 viewEntry title entry merror =
+    let
+        dtype =
+            title
+                |> Debug.toString
+                |> (\s -> "D" ++ String.dropRight 1 s)
+    in
     div
         [ style "margin-bottom" "10px"
         ]
-        [ label [] [ text title ]
+        [ label [] [ text dtype ]
         , div
             []
             [ input
