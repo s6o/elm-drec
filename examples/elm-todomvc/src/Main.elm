@@ -27,7 +27,7 @@ import Json.Encode
 import Task
 
 
-main : Program (Maybe Bool) Model Msg
+main : Program () Model Msg
 main =
     Browser.document
         { init = \_ -> init
@@ -47,11 +47,11 @@ updateWithStorage msg model =
             update msg model
 
         oldJson =
-            DRec.encoder model
+            DRec.encode model
                 |> Json.Encode.encode 0
 
         newJson =
-            DRec.encoder newModel
+            DRec.encode newModel
                 |> Json.Encode.encode 0
     in
     ( newModel
@@ -95,7 +95,7 @@ setStorage model =
             , Http.header "Prefer" "return=representation"
             ]
         , url = "http://localhost:8002/api/model"
-        , body = Http.jsonBody (DRec.encoder model)
+        , body = Http.jsonBody (DRec.encode model)
         , expect = Http.expectJson (\_ -> NoOp) (DRec.decoder model)
         , timeout = Nothing
         , tracker = Nothing
@@ -112,7 +112,7 @@ type Fields
     | Field
     | Visibility
     | Entries
-    | Description
+    | Description -- entry record
     | Completed
     | Editing
     | Id
