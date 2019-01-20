@@ -1,7 +1,7 @@
 module DRec exposing
     ( DType(..), DValue(..), DRec, DSchema, DField, DError(..)
     , init, initWithIndent, initWith, field, fieldWithMessage
-    , clear, setWith
+    , clear, setWith, update, validators
     , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt
     , setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
     , decoder, decodeValue, decodeString, encode, stringify
@@ -41,7 +41,7 @@ values in a record's member fields.
 Every time a value is set it goes through an input buffer, buffer validation,
 error/success chain.
 
-@docs clear, setWith
+@docs clear, setWith, update, validators
 
 
 ### Convenience functions
@@ -680,6 +680,136 @@ setWithP fld toValue val (DRec r) =
                     )
 
 
+{-| Update a `DRec a` member via (default) validator function `String -> Maybe (DField a)`.
+
+The `update` is the opposite of `retrieve` for working with text based HTML form inputs.
+
+-}
+update : a -> String -> DRec a -> DRec a
+update adt str (DRec r) =
+    setWith adt (selectValidator adt (DRec r)) str (DRec r)
+
+
+{-| Override default validators for `update` for specified fields.
+-}
+validators : List ( a, String -> Maybe (DField a) ) -> DRec a -> DRec a
+validators lfns (DRec r) =
+    DRec r
+
+
+{-| @private
+-}
+selectValidator : a -> DRec a -> (String -> Maybe (DField a))
+selectValidator adt (DRec r) =
+    let
+        recaseFn =
+            Debug.toString >> r.toField
+    in
+    r.schema
+        |> Dict.get (recaseFn adt)
+        |> Maybe.map typeValidator
+        |> Maybe.withDefault (fromString >> Just)
+
+
+{-| @private
+-}
+typeValidator : DType -> (String -> Maybe (DField a))
+typeValidator dtype =
+    case dtype of
+        DNever ->
+            \_ -> Nothing
+
+        DArray dvalue ->
+            \s ->
+                String.split "," s
+                    |> Array.fromList
+                    |> fromArray (valueValidator dvalue >> fromUnwrap s)
+                    |> Just
+
+        DBool ->
+            asBool >> Maybe.map fromBool
+
+        DChar ->
+            String.toInt >> Maybe.map fromCharCode
+
+        DDRec dschema ->
+            \s ->
+                decodeString (subRecord dschema) s
+                    |> Result.toMaybe
+                    |> Maybe.map fromDRec
+
+        DFloat ->
+            String.toFloat >> Maybe.map fromFloat
+
+        DInt ->
+            String.toInt >> Maybe.map fromInt
+
+        DJson ->
+            \s ->
+                Json.Decode.decodeString Json.Decode.value s
+                    |> Result.toMaybe
+                    |> Maybe.map fromJson
+
+        DList dvalue ->
+            \s ->
+                String.split "," s
+                    |> fromList (valueValidator dvalue >> fromUnwrap s)
+                    |> Just
+
+        DMaybe dvalue ->
+            valueValidator dvalue
+
+        DPosix ->
+            String.toInt >> Maybe.map fromPosixEpoch
+
+        DString ->
+            fromString >> Just
+
+
+{-| @private
+-}
+valueValidator : DValue -> (String -> Maybe (DField a))
+valueValidator dvalue =
+    case dvalue of
+        VBool ->
+            asBool >> Maybe.map fromBool
+
+        VChar ->
+            String.toInt >> Maybe.map fromCharCode
+
+        VDRec dschema ->
+            \s ->
+                decodeString (subRecord dschema) s
+                    |> Result.toMaybe
+                    |> Maybe.map fromDRec
+
+        VFloat ->
+            String.toFloat >> Maybe.map fromFloat
+
+        VInt ->
+            String.toInt >> Maybe.map fromInt
+
+        VJson ->
+            \s ->
+                Json.Decode.decodeString Json.Decode.value s
+                    |> Result.toMaybe
+                    |> Maybe.map fromJson
+
+        VPosix ->
+            String.toInt >> Maybe.map fromPosixEpoch
+
+        VString ->
+            fromString >> Just
+
+
+{-| @private
+-}
+fromUnwrap : String -> Maybe (DField a) -> DField a
+fromUnwrap default mdfa =
+    Maybe.map identity mdfa
+        |> Maybe.withDefault (fromString default)
+
+
 
 -- QUERY
 
@@ -784,6 +914,21 @@ get adt (DRec r) =
 
                 Just dfield ->
                     Ok dfield
+
+
+{-| Helper to reverse `Debug.toString` on `Bool` results: 'False' or 'True'.
+-}
+asBool : String -> Maybe Bool
+asBool input =
+    case input of
+        "False" ->
+            Just False
+
+        "True" ->
+            Just True
+
+        _ ->
+            Nothing
 
 
 {-| Call `get` and convert its value to String, return a tuple with
