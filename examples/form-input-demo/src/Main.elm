@@ -2,6 +2,7 @@ module Main exposing (Model, Msg(..), initialModel, main, update, view)
 
 import BaseRecord exposing (BaseFields(..), BaseRecord, fieldNames)
 import Browser
+import DRec
 import Html exposing (Html, button, div, fieldset, h1, h4, input, label, legend, text, textarea)
 import Html.Attributes exposing (style, type_, value)
 
@@ -17,12 +18,13 @@ main =
 
 
 type alias Model =
-    { baseTypes : BaseRecord
+    { baseRecord : BaseRecord
     }
 
 
 type Msg
     = NoOp
+    | Text BaseFields String
 
 
 initialModel : ( Model, Cmd Msg )
@@ -34,9 +36,16 @@ initialModel =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    ( model
-    , Cmd.none
-    )
+    case msg of
+        NoOp ->
+            ( model
+            , Cmd.none
+            )
+
+        Text bf str ->
+            ( { model | baseRecord = BaseRecord.update bf str model.baseRecord }
+            , Cmd.none
+            )
 
 
 view : Model -> Html Msg
@@ -87,18 +96,18 @@ viewBaseTypes model =
         []
         ([ legend [] [ text "Base Types" ]
          ]
-            ++ (BaseRecord.fieldNames model.baseTypes
-                    |> List.map (\title -> viewEntry title "" Nothing)
+            ++ (BaseRecord.fieldNames model.baseRecord
+                    |> List.map (\field -> viewEntry field (DRec.retrieve field model.baseRecord))
                )
         )
 
 
-viewEntry : String -> String -> Maybe String -> Html Msg
-viewEntry title entry merror =
+viewEntry : BaseFields -> ( String, Maybe String ) -> Html Msg
+viewEntry field ( entry, merror ) =
     div
         [ style "margin-bottom" "10px"
         ]
-        [ label [] [ text title ]
+        [ label [] [ text <| BaseRecord.fieldLabel field ]
         , div
             []
             [ input
