@@ -1,7 +1,7 @@
 module Main exposing (Model, Msg(..), initialModel, main, update, view)
 
+import BaseRecord exposing (BaseFields(..), BaseRecord, fieldNames)
 import Browser
-import DRec exposing (DRec, DType(..))
 import Html exposing (Html, button, div, fieldset, h1, h4, input, label, legend, text, textarea)
 import Html.Attributes exposing (style, type_, value)
 
@@ -16,28 +16,8 @@ main =
         }
 
 
-type BaseFields
-    = Booly
-    | Chary
-    | Floaty
-    | Inty
-    | Posixy
-    | Stringy
-
-
-baseRecord : DRec BaseFields
-baseRecord =
-    DRec.init
-        |> DRec.fieldWithMessage Booly DBool "Only accepted values are: true, false"
-        |> DRec.field Chary DChar
-        |> DRec.field Floaty DFloat
-        |> DRec.field Inty DInt
-        |> DRec.field Posixy DPosix
-        |> DRec.field Stringy DString
-
-
 type alias Model =
-    { baseTypes : DRec BaseFields
+    { baseTypes : BaseRecord
     }
 
 
@@ -47,7 +27,7 @@ type Msg
 
 initialModel : ( Model, Cmd Msg )
 initialModel =
-    ( Model baseRecord
+    ( Model BaseRecord.schema
     , Cmd.none
     )
 
@@ -103,32 +83,22 @@ view model =
 
 viewBaseTypes : Model -> Html Msg
 viewBaseTypes model =
-    let
-        baseTypes =
-            [ "DBool", "DChar", "DFloat", "DInt", "DPosix", "DString" ]
-    in
     fieldset
         []
         ([ legend [] [ text "Base Types" ]
          ]
-            ++ (DRec.fieldNames model.baseTypes
+            ++ (BaseRecord.fieldNames model.baseTypes
                     |> List.map (\title -> viewEntry title "" Nothing)
                )
         )
 
 
-viewEntry : BaseFields -> String -> Maybe String -> Html Msg
+viewEntry : String -> String -> Maybe String -> Html Msg
 viewEntry title entry merror =
-    let
-        dtype =
-            title
-                |> Debug.toString
-                |> (\s -> "D" ++ String.dropRight 1 s)
-    in
     div
         [ style "margin-bottom" "10px"
         ]
-        [ label [] [ text dtype ]
+        [ label [] [ text title ]
         , div
             []
             [ input
