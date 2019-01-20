@@ -5,7 +5,7 @@ module DRec exposing
     , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt
     , setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
     , decoder, decodeValue, decodeString, encode, stringify
-    , errorMessages, fieldBuffer, fieldError, fieldNames, get
+    , errorMessages, fieldBuffer, fieldError, fieldNames, get, asText
     , hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
     , fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt
     , fromJson, fromList, fromMaybe, fromPosix, fromPosixEpoch, fromString
@@ -64,7 +64,7 @@ Create decoders and encoders or a JSON string, based on defined schema.
 
 Helper functions to query the state and values of a `DRec a` and of its member fields.
 
-@docs errorMessages, fieldBuffer, fieldError, fieldNames, get
+@docs errorMessages, fieldBuffer, fieldError, fieldNames, get, asText
 @docs hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
 
 
@@ -784,6 +784,73 @@ get adt (DRec r) =
 
                 Just dfield ->
                     Ok dfield
+
+
+{-| Call `get` and convert its value to String or return its current error message.
+
+Not to be confused with `toString` that expects a `DRec a`'s `DString` as
+underlying value type of a `DField a` returned from `get`.
+
+Think of `asText` as Elm's `Debug.toString`.
+
+The `asText` is useful when working with (HTML) forms, where input
+fields usually expect their value in a textual representation regardless of
+the underlying (more strict) type of the data source.
+
+-}
+asText : a -> DRec a -> Result String String
+asText adt (DRec r) =
+    get adt (DRec r)
+        |> Result.map dfieldToString
+        |> Result.mapError derrorString
+
+
+{-| @private
+-}
+dfieldToString : DField a -> String
+dfieldToString dfield =
+    case dfield of
+        DArray_ adfs ->
+            adfs
+                |> Array.map dfieldToString
+                |> Array.toList
+                |> String.join ","
+
+        DBool_ b ->
+            Debug.toString b
+
+        DChar_ c ->
+            String.fromList [ c ]
+
+        DDRec_ subrec ->
+            stringify subrec
+
+        DFloat_ f ->
+            Debug.toString f
+
+        DInt_ i ->
+            Debug.toString i
+
+        DJson_ json ->
+            Json.Encode.encode 0 json
+
+        DList_ ldfs ->
+            ldfs
+                |> List.map dfieldToString
+                |> String.join ","
+
+        DMaybe_ mdf ->
+            mdf
+                |> Maybe.map dfieldToString
+                |> Maybe.withDefault ""
+
+        DPosix_ psx ->
+            psx
+                |> Time.posixToMillis
+                |> Debug.toString
+
+        DString_ s ->
+            s
 
 
 {-| Check if a schema has been specified.
