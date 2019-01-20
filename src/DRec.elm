@@ -5,7 +5,7 @@ module DRec exposing
     , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt
     , setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
     , decoder, decodeValue, decodeString, encode, stringify
-    , errorMessages, fieldBuffer, fieldError, fieldNames, get, asText
+    , errorMessages, fieldBuffer, fieldError, fieldNames, get, retrieve
     , hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
     , fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt
     , fromJson, fromList, fromMaybe, fromPosix, fromPosixEpoch, fromString
@@ -64,7 +64,7 @@ Create decoders and encoders or a JSON string, based on defined schema.
 
 Helper functions to query the state and values of a `DRec a` and of its member fields.
 
-@docs errorMessages, fieldBuffer, fieldError, fieldNames, get, asText
+@docs errorMessages, fieldBuffer, fieldError, fieldNames, get, retrieve
 @docs hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
 
 
@@ -786,23 +786,23 @@ get adt (DRec r) =
                     Ok dfield
 
 
-{-| Call `get` and convert its value to String or return its current error message.
+{-| Call `get` and convert its value to String, return a tuple with
+(current\_value, Nothing) on success and (input\_buffer\_value, Just error\_message)
+of failure.
 
-Not to be confused with `toString` that expects a `DRec a`'s `DString` as
-underlying value type of a `DField a` returned from `get`.
-
-Think of `asText` as Elm's `Debug.toString`.
-
-The `asText` is useful when working with (HTML) forms, where input
+The `retrieve` is useful when working with (HTML) forms, where input
 fields usually expect their value in a textual representation regardless of
-the underlying (more strict) type of the data source.
+the underlying (more strict) type of the data.
 
 -}
-asText : a -> DRec a -> Result String String
-asText adt (DRec r) =
-    get adt (DRec r)
-        |> Result.map dfieldToString
-        |> Result.mapError derrorString
+retrieve : a -> DRec a -> ( String, Maybe String )
+retrieve adt (DRec r) =
+    case get adt (DRec r) of
+        Ok dfield ->
+            ( dfieldToString dfield, Nothing )
+
+        Err derr ->
+            ( fieldBuffer adt (DRec r) |> Maybe.withDefault "", derrorString derr |> Just )
 
 
 {-| @private
