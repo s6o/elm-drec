@@ -4,7 +4,6 @@ module BaseRecord exposing
     , fieldLabel
     , fieldNames
     , schema
-    , update
     )
 
 import DRec exposing (DField, DRec, DType(..), field, fieldWithMessage)
@@ -27,7 +26,7 @@ type alias BaseRecord =
 schema : BaseRecord
 schema =
     DRec.init
-        |> fieldWithMessage Booly DBool "Only accepted values are: true, false"
+        |> fieldWithMessage Booly DBool "Accepted values are: True, False"
         |> field Chary DChar
         |> field Floaty DFloat
         |> field Inty DInt
@@ -64,23 +63,3 @@ boolValidator input =
 
     else
         Nothing
-
-
-update : BaseFields -> String -> BaseRecord -> BaseRecord
-update field str drec =
-    let
-        validators =
-            [ ( Booly, boolValidator )
-            , ( Chary, String.toInt >> Maybe.map (Char.fromCode >> DRec.fromChar) )
-            , ( Floaty, String.toFloat >> Maybe.map DRec.fromFloat )
-            , ( Inty, String.toInt >> Maybe.map DRec.fromInt )
-            , ( Posixy, String.toInt >> Maybe.map DRec.fromPosixEpoch )
-            , ( Stringy, DRec.fromString >> Just )
-            ]
-                |> List.map (\( f, v ) -> ( Debug.toString f, v ))
-                |> Dict.fromList
-    in
-    validators
-        |> Dict.get (Debug.toString field)
-        |> Maybe.map (\v -> DRec.setWith field v str drec)
-        |> Maybe.withDefault drec
