@@ -455,6 +455,15 @@ fieldWithMessage adt dtype errmsg (DRec r) =
         |> field adt dtype
 
 
+{-| @private
+Return customized field validation message or construct a default message.
+-}
+validationMessage : DRec a -> String -> String
+validationMessage (DRec r) fld =
+    Dict.get fld r.vdnmsg
+        |> Maybe.withDefault ("Validation failed, field: " ++ fld)
+
+
 
 -- VALUES
 
@@ -642,6 +651,7 @@ setWithP fld toValue val (DRec r) =
                     { r
                         | buffers = Dict.insert fld bufferValue r.buffers
                         , errors = Dict.insert fld de r.errors
+                        , store = Dict.remove fld r.store
                     }
     in
     case
@@ -672,8 +682,8 @@ setWithP fld toValue val (DRec r) =
                                 |> DRec
                     )
                 |> Maybe.withDefault
-                    (Dict.get fld r.vdnmsg
-                        |> Maybe.withDefault ("Validation failed, field: " ++ fld)
+                    (fld
+                        |> validationMessage (DRec r)
                         |> ValidationFailed
                         |> setError True
                         |> DRec
@@ -907,9 +917,17 @@ get adt (DRec r) =
                 Dict.get fld r.store
             of
                 Nothing ->
-                    fld
-                        |> MissingValue
-                        |> Err
+                    case fieldBuffer adt (DRec r) of
+                        Nothing ->
+                            fld
+                                |> MissingValue
+                                |> Err
+
+                        Just _ ->
+                            fld
+                                |> validationMessage (DRec r)
+                                |> ValidationFailed
+                                |> Err
 
                 Just dfield ->
                     Ok dfield
