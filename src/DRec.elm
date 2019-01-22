@@ -949,7 +949,7 @@ asBool input =
 
 
 {-| Call `get` and convert its value to String, return a tuple with
-(current\_value, Nothing) on success and (input\_buffer\_value, Just error\_message)
+(current\_value, Nothing) on success and (input\_buffer\_value, Just derror)
 of failure.
 
 The `retrieve` is useful when working with (HTML) forms, where input
@@ -957,14 +957,14 @@ fields usually expect their value in a textual representation regardless of
 the underlying (more strict) type of the data.
 
 -}
-retrieve : a -> DRec a -> ( String, Maybe String )
+retrieve : a -> DRec a -> ( String, Maybe DError )
 retrieve adt (DRec r) =
     case get adt (DRec r) of
         Ok dfield ->
             ( dfieldToString dfield, Nothing )
 
         Err derr ->
-            ( fieldBuffer adt (DRec r) |> Maybe.withDefault "", derrorString derr |> Just )
+            ( fieldBuffer adt (DRec r) |> Maybe.withDefault "", Just derr )
 
 
 {-| @private
