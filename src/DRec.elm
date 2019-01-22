@@ -896,6 +896,30 @@ fieldNames (DRec r) =
     r.fields
 
 
+{-| Check specified field error, if `MissingValue` return its message otherwise nothing.
+-}
+isMissing : Maybe DError -> Maybe String
+isMissing mde =
+    case mde of
+        Just (MissingValue msg) ->
+            Just msg
+
+        _ ->
+            Nothing
+
+
+{-| Check specified field error, if `ValidationFailed` return its message otherwise nothing.
+-}
+isInvalid : Maybe DError -> Maybe String
+isInvalid mde =
+    case mde of
+        Just (ValidationFailed msg) ->
+            Just msg
+
+        _ ->
+            Nothing
+
+
 {-| For a valid field defined in schema return a value/type mapping.
 -}
 get : a -> DRec a -> Result DError (DField a)
