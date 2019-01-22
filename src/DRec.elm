@@ -874,10 +874,9 @@ fieldBuffer adt (DRec r) =
 
 {-| Query error message for a field.
 -}
-fieldError : a -> DRec a -> Maybe String
+fieldError : a -> DRec a -> Maybe DError
 fieldError adt (DRec r) =
     Dict.get ((Debug.toString >> r.toField) adt) r.errors
-        |> Maybe.map derrorString
 
 
 {-| Get field names in the order they were defined.

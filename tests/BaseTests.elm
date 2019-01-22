@@ -1,7 +1,7 @@
 module BaseTests exposing (basesuite)
 
 import BaseTypes
-import DRec
+import DRec exposing (DError(..))
 import Expect exposing (Expectation)
 import Json.Encode
 import Test exposing (..)
@@ -93,7 +93,7 @@ basesuite =
                             BaseTypes.unitValues
                                 |> DRec.setWith BaseTypes.Abbr BaseTypes.unitAbbrValidator "mm"
                     in
-                    Expect.equal (Just BaseTypes.unitError) (DRec.fieldError BaseTypes.Abbr drec)
+                    Expect.equal (Just (ValidationFailed BaseTypes.unitError)) (DRec.fieldError BaseTypes.Abbr drec)
             , test "failed Int assignment" <|
                 \_ ->
                     let
@@ -149,8 +149,8 @@ basesuite =
                         , DRec.fieldBuffer BaseTypes.Floaty >> Expect.equal (Just "31a")
                         , DRec.fieldBuffer BaseTypes.Inty >> Expect.equal (Just "3.1")
                         , DRec.isValid >> Expect.equal False
-                        , DRec.fieldError BaseTypes.Floaty >> Expect.equal (Just "Validation failed, field: floaty")
-                        , DRec.fieldError BaseTypes.Inty >> Expect.equal (Just "Validation failed, field: inty")
+                        , DRec.fieldError BaseTypes.Floaty >> Expect.equal (Just (ValidationFailed "Validation failed, field: floaty"))
+                        , DRec.fieldError BaseTypes.Inty >> Expect.equal (Just (ValidationFailed "Validation failed, field: inty"))
                         ]
                         drec
             ]
