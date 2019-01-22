@@ -5,8 +5,9 @@ module DRec exposing
     , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt
     , setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
     , decoder, decodeValue, decodeString, encode, stringify
-    , errorMessages, fieldBuffer, fieldError, fieldNames, get, retrieve
-    , hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
+    , get, fieldNames, retrieve, schema
+    , errorMessages, fieldBuffer, fieldError, isMissing, isInvalid
+    , hasSchema, hasValue, isEmpty, isValid, isValidWith
     , fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt
     , fromJson, fromList, fromMaybe, fromPosix, fromPosixEpoch, fromString
     , toArray, toBool, toChar, toCharCode, toDRec, toFloat, toInt
@@ -62,10 +63,17 @@ Create decoders and encoders or a JSON string, based on defined schema.
 
 # Query
 
-Helper functions to query the state and values of a `DRec a` and of its member fields.
+@docs get, fieldNames, retrieve, schema
 
-@docs errorMessages, fieldBuffer, fieldError, fieldNames, get, retrieve
-@docs hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
+
+## Field error helper functions
+
+@docs errorMessages, fieldBuffer, fieldError, isMissing, isInvalid
+
+
+## Schema and value helper functions
+
+@docs hasSchema, hasValue, isEmpty, isValid, isValidWith
 
 
 # Decode
