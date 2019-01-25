@@ -757,7 +757,15 @@ typeValidator dtype =
                     |> Maybe.map fromDRec
 
         DFloat ->
-            String.toFloat >> Maybe.map fromFloat
+            (\s ->
+                if String.right 1 s == "." || String.right 1 s == "0" then
+                    s ++ " "
+
+                else
+                    s
+            )
+                >> String.toFloat
+                >> Maybe.map fromFloat
 
         DInt ->
             String.toInt >> Maybe.map fromInt
