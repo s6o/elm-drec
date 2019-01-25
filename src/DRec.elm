@@ -387,6 +387,13 @@ toSnakeCase adt =
         |> String.fromList
 
 
+{-| @private
+-}
+recase : a -> DRec a -> String
+recase adt (DRec r) =
+    Debug.toString adt |> r.toField
+
+
 {-| Define `DRec a` schema when initializing your application's model member.
 
     module User exposing (UserField(..), init)
@@ -431,11 +438,8 @@ toSnakeCase adt =
 field : a -> DType -> DRec a -> DRec a
 field adt dtype (DRec r) =
     let
-        recaseFn =
-            Debug.toString >> r.toField
-
         rfield =
-            recaseFn adt
+            recase adt (DRec r)
     in
     case
         Dict.get rfield r.schema
@@ -444,7 +448,7 @@ field adt dtype (DRec r) =
             DRec
                 { r
                     | fields = r.fields ++ [ adt ]
-                    , sfields = r.sfields ++ [ recaseFn adt ]
+                    , sfields = r.sfields ++ [ rfield ]
                     , schema = Dict.insert rfield dtype r.schema
                 }
 
@@ -459,7 +463,7 @@ field adt dtype (DRec r) =
 -}
 fieldWithMessage : a -> DType -> String -> DRec a -> DRec a
 fieldWithMessage adt dtype errmsg (DRec r) =
-    DRec { r | vdnmsg = Dict.insert ((Debug.toString >> r.toField) adt) errmsg r.vdnmsg }
+    DRec { r | vdnmsg = Dict.insert (recase adt (DRec r)) errmsg r.vdnmsg }
         |> field adt dtype
 
 
@@ -636,7 +640,7 @@ For quering the error and input buffer use `fieldError` and `fieldBuffer` respec
 -}
 setWith : a -> (b -> Maybe (DField a)) -> b -> DRec a -> DRec a
 setWith adt toValue value (DRec r) =
-    setWithP ((Debug.toString >> r.toField) adt) toValue value (DRec r)
+    setWithP (recase adt (DRec r)) toValue value (DRec r)
 
 
 {-| @private
@@ -719,12 +723,8 @@ validators lfns (DRec r) =
 -}
 selectValidator : a -> DRec a -> (String -> Maybe (DField a))
 selectValidator adt (DRec r) =
-    let
-        recaseFn =
-            Debug.toString >> r.toField
-    in
     r.schema
-        |> Dict.get (recaseFn adt)
+        |> Dict.get (recase adt (DRec r))
         |> Maybe.map typeValidator
         |> Maybe.withDefault (fromString >> Just)
 
@@ -895,14 +895,14 @@ errorMessages (DRec r) =
 -}
 fieldBuffer : a -> DRec a -> Maybe String
 fieldBuffer adt (DRec r) =
-    Dict.get ((Debug.toString >> r.toField) adt) r.buffers
+    Dict.get (recase adt (DRec r)) r.buffers
 
 
 {-| Query error message for a field.
 -}
 fieldError : a -> DRec a -> Maybe DError
 fieldError adt (DRec r) =
-    Dict.get ((Debug.toString >> r.toField) adt) r.errors
+    Dict.get (recase adt (DRec r)) r.errors
 
 
 {-| Get field names in the order they were defined.
@@ -942,7 +942,7 @@ get : a -> DRec a -> Result DError (DField a)
 get adt (DRec r) =
     let
         fld =
-            (Debug.toString >> r.toField) adt
+            recase adt (DRec r)
     in
     case
         Dict.get fld r.schema
