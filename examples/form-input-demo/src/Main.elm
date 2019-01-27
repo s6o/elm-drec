@@ -5,7 +5,7 @@ import Browser
 import DRec exposing (DError(..))
 import Html exposing (Html, button, div, fieldset, h1, h4, input, label, legend, text, textarea)
 import Html.Attributes exposing (checked, style, type_, value)
-import Html.Events exposing (onCheck, onInput)
+import Html.Events exposing (onCheck, onClick, onInput)
 
 
 main : Program () Model Msg
@@ -20,17 +20,19 @@ main =
 
 type alias Model =
     { baseRecord : BaseRecord
+    , baseJson : String
     }
 
 
 type Msg
     = NoOp
     | Text BaseFields String
+    | Encode
 
 
 initialModel : ( Model, Cmd Msg )
 initialModel =
-    ( Model BaseRecord.schema
+    ( Model BaseRecord.schema ""
     , Cmd.none
     )
 
@@ -45,6 +47,11 @@ update msg model =
 
         Text bf str ->
             ( { model | baseRecord = DRec.update bf str model.baseRecord }
+            , Cmd.none
+            )
+
+        Encode ->
+            ( { model | baseJson = DRec.stringify model.baseRecord }
             , Cmd.none
             )
 
@@ -67,7 +74,10 @@ view model =
                         [ style "flex" "35%"
                         ]
                         [ viewBaseTypes model
-                        , button [] [ h4 [] [ text "Encode" ] ]
+                        , button
+                            [ onClick Encode ]
+                            [ h4 [] [ text "Encode" ]
+                            ]
                         ]
                     , div
                         [ style "flex" "65%"
@@ -75,11 +85,16 @@ view model =
                         [ textarea
                             [ style "width" "100%"
                             , style "height" "100%"
+                            , style "font-size" "14pt"
                             ]
-                            []
+                            [ text model.baseJson
+                            ]
                         , div
                             []
-                            [ button [] [ h4 [] [ text "Decode, to disply in form" ] ]
+                            [ button
+                                []
+                                [ h4 [] [ text "Decode, to disply in form" ]
+                                ]
                             ]
                         ]
                     ]

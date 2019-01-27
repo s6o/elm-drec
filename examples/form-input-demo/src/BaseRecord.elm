@@ -26,7 +26,7 @@ type alias BaseRecord =
 
 schema : BaseRecord
 schema =
-    DRec.init
+    DRec.initWithIndent 4
         |> field Checky DBool
         |> fieldWithMessage Booly DBool "Accepted values are: True, False"
         |> field Chary DChar
