@@ -11,7 +11,8 @@ import Dict
 
 
 type BaseFields
-    = Booly
+    = Checky
+    | Booly
     | Chary
     | Floaty
     | Inty
@@ -26,6 +27,7 @@ type alias BaseRecord =
 schema : BaseRecord
 schema =
     DRec.init
+        |> field Checky DBool
         |> fieldWithMessage Booly DBool "Accepted values are: True, False"
         |> field Chary DChar
         |> field Floaty DFloat
@@ -41,25 +43,4 @@ fieldNames r =
 
 fieldLabel : BaseFields -> String
 fieldLabel bf =
-    (Debug.toString >> String.dropRight 1 >> (++) "D") bf
-
-
-boolValidator : String -> Maybe (DField a)
-boolValidator input =
-    let
-        allowed =
-            [ "false", "true" ]
-
-        linput =
-            String.toLower input
-    in
-    if List.member linput allowed then
-        Just <|
-            if linput == "true" then
-                DRec.fromBool True
-
-            else
-                DRec.fromBool False
-
-    else
-        Nothing
+    (Debug.toString >> String.dropRight 1) bf

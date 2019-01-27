@@ -4,8 +4,8 @@ import BaseRecord exposing (BaseFields(..), BaseRecord, fieldNames)
 import Browser
 import DRec exposing (DError(..))
 import Html exposing (Html, button, div, fieldset, h1, h4, input, label, legend, text, textarea)
-import Html.Attributes exposing (style, type_, value)
-import Html.Events exposing (onInput)
+import Html.Attributes exposing (checked, style, type_, value)
+import Html.Events exposing (onCheck, onInput)
 
 
 main : Program () Model Msg
@@ -67,6 +67,7 @@ view model =
                         [ style "flex" "35%"
                         ]
                         [ viewBaseTypes model
+                        , button [] [ h4 [] [ text "Encode" ] ]
                         ]
                     , div
                         [ style "flex" "65%"
@@ -111,13 +112,23 @@ viewEntry field ( entry, merror ) =
         [ label [] [ text <| BaseRecord.fieldLabel field ]
         , div
             []
-            [ input
-                [ type_ "text"
-                , value entry
-                , style "width" "100%"
-                , onInput (Text field)
-                ]
-                []
+            [ case field of
+                Checky ->
+                    input
+                        [ type_ "checkbox"
+                        , checked <| Maybe.withDefault False <| DRec.asBool entry
+                        , onCheck (Debug.toString >> Text field)
+                        ]
+                        []
+
+                _ ->
+                    input
+                        [ type_ "text"
+                        , value entry
+                        , style "width" "100%"
+                        , onInput (Text field)
+                        ]
+                        []
             ]
         , div
             [ style "color" "#A00000"
