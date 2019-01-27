@@ -748,7 +748,7 @@ typeValidator dtype =
             asBool >> Maybe.map fromBool
 
         DChar ->
-            String.toInt >> Maybe.map fromCharCode
+            String.toList >> List.head >> Maybe.map fromChar
 
         DDRec dschema ->
             \s ->
