@@ -3,6 +3,7 @@ module BaseRecord exposing
     , BaseRecord
     , fieldLabel
     , fieldNames
+    , initialValues
     , schema
     )
 
@@ -34,6 +35,18 @@ schema =
         |> field Inty DInt
         |> field Posixy DPosix
         |> field Stringy DString
+
+
+initialValues : BaseRecord
+initialValues =
+    schema
+        |> DRec.setBool Checky True
+        |> DRec.setBool Booly False
+        |> DRec.setChar Chary '🙈'
+        |> DRec.setFloat Floaty 3.14
+        |> DRec.setInt Inty 42
+        |> DRec.setPosixEpoch Posixy 1548663014000
+        |> DRec.setString Stringy "lorem ipsum"
 
 
 fieldNames : BaseRecord -> List BaseFields

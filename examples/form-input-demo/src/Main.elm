@@ -21,18 +21,24 @@ main =
 type alias Model =
     { baseRecord : BaseRecord
     , baseJson : String
+    , decodeError : Maybe DError
     }
 
 
 type Msg
     = NoOp
-    | Text BaseFields String
+    | FieldInput BaseFields String
+    | JsonInput String
     | Encode
+    | Decode
 
 
 initialModel : ( Model, Cmd Msg )
 initialModel =
-    ( Model BaseRecord.schema ""
+    ( { baseRecord = BaseRecord.initialValues
+      , baseJson = DRec.stringify BaseRecord.initialValues
+      , decodeError = Nothing
+      }
     , Cmd.none
     )
 
@@ -45,13 +51,36 @@ update msg model =
             , Cmd.none
             )
 
-        Text bf str ->
+        FieldInput bf str ->
             ( { model | baseRecord = DRec.update bf str model.baseRecord }
+            , Cmd.none
+            )
+
+        JsonInput str ->
+            ( { model | baseJson = str }
             , Cmd.none
             )
 
         Encode ->
             ( { model | baseJson = DRec.stringify model.baseRecord }
+            , Cmd.none
+            )
+
+        Decode ->
+            let
+                decres =
+                    DRec.decodeString BaseRecord.schema model.baseJson
+            in
+            ( { model
+                | baseRecord = decres |> Result.withDefault model.baseRecord
+                , decodeError =
+                    case decres of
+                        Err derr ->
+                            Just derr
+
+                        _ ->
+                            Nothing
+              }
             , Cmd.none
             )
 
@@ -86,15 +115,25 @@ view model =
                             [ style "width" "100%"
                             , style "height" "100%"
                             , style "font-size" "14pt"
+                            , onInput JsonInput
                             ]
                             [ text model.baseJson
                             ]
                         , div
                             []
                             [ button
-                                []
+                                [ onClick Decode ]
                                 [ h4 [] [ text "Decode, to disply in form" ]
                                 ]
+                            ]
+                        , div
+                            [ style "color" "#A00000"
+                            , style "min-height" "25px"
+                            ]
+                            [ model.decodeError
+                                |> DRec.isDecodingFailure
+                                |> Maybe.withDefault ""
+                                |> text
                             ]
                         ]
                     ]
@@ -132,7 +171,7 @@ viewEntry field ( entry, merror ) =
                     input
                         [ type_ "checkbox"
                         , checked <| Maybe.withDefault False <| DRec.asBool entry
-                        , onCheck (Debug.toString >> Text field)
+                        , onCheck (Debug.toString >> FieldInput field)
                         ]
                         []
 
@@ -141,7 +180,7 @@ viewEntry field ( entry, merror ) =
                         [ type_ "text"
                         , value entry
                         , style "width" "100%"
-                        , onInput (Text field)
+                        , onInput (FieldInput field)
                         ]
                         []
             ]
