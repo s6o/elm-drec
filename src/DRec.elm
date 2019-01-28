@@ -6,7 +6,7 @@ module DRec exposing
     , setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
     , decoder, decodeValue, decodeString, encode, stringify
     , asBool, get, fieldNames, retrieve, schema
-    , errorMessages, fieldBuffer, fieldError, isMissing, isInvalid
+    , errorMessages, fieldBuffer, fieldError, isDecodingFailure, isMissing, isInvalid
     , hasSchema, hasValue, isEmpty, isValid, isValidWith
     , fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt
     , fromJson, fromList, fromMaybe, fromPosix, fromPosixEpoch, fromString
@@ -68,7 +68,7 @@ Create decoders and encoders or a JSON string, based on defined schema.
 
 ## Field error helper functions
 
-@docs errorMessages, fieldBuffer, fieldError, isMissing, isInvalid
+@docs errorMessages, fieldBuffer, fieldError, isDecodingFailure, isMissing, isInvalid
 
 
 ## Schema and value helper functions
@@ -912,7 +912,22 @@ fieldNames (DRec r) =
     r.fields
 
 
-{-| Check specified field error, if `MissingValue` return its message otherwise nothing.
+{-| Check if specified `DError` represents a decoding failure: `NoSchema` or `DecodingFailed`.
+-}
+isDecodingFailure : Maybe DError -> Maybe String
+isDecodingFailure mde =
+    case mde of
+        Just (DecodingFailed msg) ->
+            Just msg
+
+        Just NoSchema ->
+            derrorString NoSchema |> Just
+
+        _ ->
+            Nothing
+
+
+{-| Check specified `DError` is `MissingValue`, return its message otherwise `Nothing`.
 -}
 isMissing : Maybe DError -> Maybe String
 isMissing mde =
@@ -924,7 +939,7 @@ isMissing mde =
             Nothing
 
 
-{-| Check specified field error, if `ValidationFailed` return its message otherwise nothing.
+{-| Check specified `DError` is `ValidationFailed`, return its message otherwise `Nothing`.
 -}
 isInvalid : Maybe DError -> Maybe String
 isInvalid mde =
