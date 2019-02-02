@@ -5,7 +5,6 @@ module BaseTypes exposing
     , json
     , unit
     , unitAbbrValidator
-    , unitError
     , unitValues
     , values
     )
@@ -43,7 +42,7 @@ fieldNames =
 unit : DRec Fields
 unit =
     DRec.init
-        |> DRec.fieldWithMessage Abbr DString unitError
+        |> DRec.field Abbr DString
         |> DRec.field Long DString
 
 
@@ -58,11 +57,6 @@ init =
         |> DRec.field Posixy DPosix
         |> DRec.field Stringy DString
         |> DRec.field Suby (DDRec <| DRec.schema unit)
-
-
-unitError : String
-unitError =
-    "Unit Abbr. must be single letter only."
 
 
 unitValues : DRec Fields

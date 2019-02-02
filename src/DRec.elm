@@ -1,12 +1,12 @@
 module DRec exposing
     ( DType(..), DValue(..), DRec, DSchema, DField, DError(..)
-    , init, initWithIndent, initWith, field, fieldWithMessage
+    , init, initWithIndent, initWith, field
     , clear, setWith, update, validators
     , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt
     , setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
     , decoder, decodeValue, decodeString, encode, stringify
     , asBool, get, fieldNames, retrieve, schema
-    , errorMessages, fieldBuffer, fieldError, isDecodingFailure, isMissing, isInvalid
+    , fieldBuffer, fieldError, isDecodingFailure, isMissing, isInvalid
     , hasSchema, hasValue, isEmpty, isValid, isValidWith
     , fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt
     , fromJson, fromList, fromMaybe, fromPosix, fromPosixEpoch, fromString
@@ -30,7 +30,7 @@ A schema definitions usually start with the `init` or `initWith` function,
 followed by several `field` functions piped after each other.
 
 @docs DType, DValue, DRec, DSchema, DField, DError
-@docs init, initWithIndent, initWith, field, fieldWithMessage
+@docs init, initWithIndent, initWith, field
 
 
 ## Values
@@ -68,7 +68,7 @@ Create decoders and encoders or a JSON string, based on defined schema.
 
 ## Field error helper functions
 
-@docs errorMessages, fieldBuffer, fieldError, isDecodingFailure, isMissing, isInvalid
+@docs fieldBuffer, fieldError, isDecodingFailure, isMissing, isInvalid
 
 
 ## Schema and value helper functions
@@ -148,7 +148,6 @@ type DRec a
         , sfields : List String
         , store : Dict String (DField a)
         , toField : String -> String
-        , vdnmsg : Dict String String
         , indent : Int
         }
 
@@ -176,7 +175,6 @@ type DSchema
         { fields : List String
         , schema : Dict String DType
         , recase : String -> String
-        , vdnmsg : Dict String String
         , indent : Int
         }
 
@@ -213,7 +211,6 @@ fieldType fname dfield (DRec r) =
                     { fields = sr.sfields
                     , schema = sr.schema
                     , recase = sr.toField
-                    , vdnmsg = sr.vdnmsg
                     , indent = sr.indent
                     }
 
@@ -290,13 +287,12 @@ fieldSubType fname dfield drec =
 -}
 type DError
     = DecodingFailed String
-    | DuplicateField String
-    | InvalidSchemaType String
-    | MissingValue String
+    | DuplicateField
+    | MissingValue
     | NoSchema
     | TypeMismatch String
-    | UknownField String
-    | ValidationFailed String
+    | UknownField
+    | ValidationFailed
 
 
 {-| Initialize a `DRec a` with an Union Type for fields and with:
@@ -361,7 +357,6 @@ initWith recaseFn depth =
         , sfields = []
         , store = Dict.empty
         , toField = recaseFn
-        , vdnmsg = Dict.empty
         , indent = indentDepth
         }
 
@@ -413,7 +408,7 @@ recase adt (DRec r) =
             |> DRec.field Id DInt
             |> DRec.field Email DString
             |> DRec.field Name DString
-            |> DRec.fieldWithMessage Pin DInt "Pin must be a numeric value > 1000 and contain at least 4 different digits"
+            |> DRec.field Pin DInt
             |> DRec.field Token (DMaybe VString)
 
     -- ...
@@ -453,27 +448,9 @@ field adt dtype (DRec r) =
                 }
 
         Just _ ->
-            rfield
-                |> DuplicateField
+            DuplicateField
                 |> (\derror -> { r | errors = Dict.insert rfield derror r.errors })
                 |> DRec
-
-
-{-| Customize the `ValidationFailed String` of `DError` for specified field.
--}
-fieldWithMessage : a -> DType -> String -> DRec a -> DRec a
-fieldWithMessage adt dtype errmsg (DRec r) =
-    DRec { r | vdnmsg = Dict.insert (recase adt (DRec r)) errmsg r.vdnmsg }
-        |> field adt dtype
-
-
-{-| @private
-Return customized field validation message or construct a default message.
--}
-validationMessage : DRec a -> String -> String
-validationMessage (DRec r) fld =
-    Dict.get fld r.vdnmsg
-        |> Maybe.withDefault ("Validation failed, field: " ++ fld)
 
 
 
@@ -670,8 +647,7 @@ setWithP fld toValue val (DRec r) =
         Dict.get fld r.schema
     of
         Nothing ->
-            fld
-                |> UknownField
+            UknownField
                 |> setError False
                 |> DRec
 
@@ -694,9 +670,7 @@ setWithP fld toValue val (DRec r) =
                                 |> DRec
                     )
                 |> Maybe.withDefault
-                    (fld
-                        |> validationMessage (DRec r)
-                        |> ValidationFailed
+                    (ValidationFailed
                         |> setError True
                         |> DRec
                     )
@@ -840,57 +814,6 @@ fromUnwrap default mdfa =
 -- QUERY
 
 
-{-| @private
--}
-derrorString : DError -> String
-derrorString derror =
-    case derror of
-        DecodingFailed msg ->
-            "Decoding failed: " ++ msg
-
-        DuplicateField msg ->
-            "Duplicate field: " ++ msg
-
-        InvalidSchemaType msg ->
-            "Invalid schema type: " ++ msg
-
-        MissingValue msg ->
-            "Missing value: " ++ msg
-
-        NoSchema ->
-            "No schema."
-
-        TypeMismatch msg ->
-            "Type mismatch: " ++ msg
-
-        UknownField msg ->
-            "Unknown field: " ++ msg
-
-        ValidationFailed msg ->
-            msg
-
-
-{-| Get all errors messages as a single string.
--}
-errorMessages : DRec a -> Maybe String
-errorMessages (DRec r) =
-    if Dict.isEmpty r.errors then
-        Nothing
-
-    else
-        r.errors
-            |> Dict.foldl
-                (\fld derror accum ->
-                    if String.isEmpty accum then
-                        accum ++ derrorString derror
-
-                    else
-                        accum ++ (" | " ++ derrorString derror)
-                )
-                ""
-            |> Just
-
-
 {-| Query field's input buffer.
 -}
 fieldBuffer : a -> DRec a -> Maybe String
@@ -912,7 +835,7 @@ fieldNames (DRec r) =
     r.fields
 
 
-{-| Check if specified `DError` represents a decoding failure: `NoSchema` or `DecodingFailed`.
+{-| Check if specified `DError` is `DecodingFailed String`, return its message otherwise `Noting`.
 -}
 isDecodingFailure : Maybe DError -> Maybe String
 isDecodingFailure mde =
@@ -920,35 +843,32 @@ isDecodingFailure mde =
         Just (DecodingFailed msg) ->
             Just msg
 
-        Just NoSchema ->
-            derrorString NoSchema |> Just
-
         _ ->
             Nothing
 
 
-{-| Check specified `DError` is `MissingValue`, return its message otherwise `Nothing`.
+{-| Check specified `DError` is `MissingValue`.
 -}
-isMissing : Maybe DError -> Maybe String
+isMissing : Maybe DError -> Bool
 isMissing mde =
     case mde of
-        Just (MissingValue msg) ->
-            Just msg
+        Just MissingValue ->
+            True
 
         _ ->
-            Nothing
+            False
 
 
-{-| Check specified `DError` is `ValidationFailed`, return its message otherwise `Nothing`.
+{-| Check specified `DError` is `ValidationFailed`.
 -}
-isInvalid : Maybe DError -> Maybe String
+isInvalid : Maybe DError -> Bool
 isInvalid mde =
     case mde of
-        Just (ValidationFailed msg) ->
-            Just msg
+        Just ValidationFailed ->
+            True
 
         _ ->
-            Nothing
+            False
 
 
 {-| For a valid field defined in schema return a value/type mapping.
@@ -963,8 +883,7 @@ get adt (DRec r) =
         Dict.get fld r.schema
     of
         Nothing ->
-            fld
-                |> UknownField
+            UknownField
                 |> Err
 
         Just _ ->
@@ -974,14 +893,11 @@ get adt (DRec r) =
                 Nothing ->
                     case fieldBuffer adt (DRec r) of
                         Nothing ->
-                            fld
-                                |> MissingValue
+                            MissingValue
                                 |> Err
 
                         Just _ ->
-                            fld
-                                |> validationMessage (DRec r)
-                                |> ValidationFailed
+                            ValidationFailed
                                 |> Err
 
                 Just dfield ->
@@ -1157,7 +1073,6 @@ schema (DRec r) =
         { fields = r.sfields
         , schema = r.schema
         , recase = r.toField
-        , vdnmsg = r.vdnmsg
         , indent = r.indent
         }
 
@@ -1749,7 +1664,6 @@ subRecord (DSchema ds) =
         , schema = ds.schema
         , store = Dict.empty
         , toField = ds.recase
-        , vdnmsg = ds.vdnmsg
         , indent = ds.indent * 2
         }
 
@@ -1777,12 +1691,11 @@ decoder (DRec r) =
         subDecoder (DRec r)
 
     else
-        errorMessages (DRec r)
-            |> Maybe.map Json.Decode.fail
-            |> Maybe.withDefault
-                ("decoder logic failure, how do you got here?"
-                    |> Json.Decode.fail
-                )
+        r.errors
+            |> Dict.toList
+            |> List.map (\( fld, derror ) -> "fld = " ++ Debug.toString derror)
+            |> String.join " | "
+            |> Json.Decode.fail
 
 
 {-| Initialize `DRec a` data by decoding specified JSON (`Json.Encode.Value`) accordingly to `DRec a` schema.

@@ -18,7 +18,6 @@ basesuite =
                         [ DRec.hasSchema >> Expect.equal False
                         , DRec.isEmpty >> Expect.equal True
                         , DRec.isValid >> Expect.equal True
-                        , DRec.errorMessages >> Expect.equal Nothing
                         , DRec.fieldNames >> Expect.equal []
                         ]
                         DRec.init
@@ -28,7 +27,6 @@ basesuite =
                         [ DRec.hasSchema >> Expect.equal True
                         , DRec.isEmpty >> Expect.equal True
                         , DRec.isValid >> Expect.equal False
-                        , DRec.errorMessages >> Expect.equal Nothing
                         , DRec.fieldNames >> Expect.equal BaseTypes.fieldNames
                         ]
                         BaseTypes.init
@@ -86,15 +84,7 @@ basesuite =
                     Expect.equal BaseTypes.json json
             ]
         , describe "Test validations via setWith"
-            [ test "custom validation message" <|
-                \_ ->
-                    let
-                        drec =
-                            BaseTypes.unitValues
-                                |> DRec.setWith BaseTypes.Abbr BaseTypes.unitAbbrValidator "mm"
-                    in
-                    Expect.equal (Just (ValidationFailed BaseTypes.unitError)) (DRec.fieldError BaseTypes.Abbr drec)
-            , test "failed Int assignment" <|
+            [ test "failed Int assignment" <|
                 \_ ->
                     let
                         validator =
@@ -106,7 +96,6 @@ basesuite =
                     in
                     Expect.all
                         [ DRec.hasValue BaseTypes.Inty >> Expect.equal False
-                        , DRec.errorMessages >> Expect.equal (Just "Validation failed, field: inty")
                         , DRec.fieldBuffer BaseTypes.Inty >> Expect.equal (Just "3.1")
                         , DRec.isValid >> Expect.equal False
                         ]
@@ -123,7 +112,6 @@ basesuite =
                     in
                     Expect.all
                         [ DRec.hasValue BaseTypes.Floaty >> Expect.equal False
-                        , DRec.errorMessages >> Expect.equal (Just "Validation failed, field: floaty")
                         , DRec.fieldBuffer BaseTypes.Floaty >> Expect.equal (Just "31a")
                         , DRec.isValid >> Expect.equal False
                         ]
@@ -145,12 +133,11 @@ basesuite =
                     Expect.all
                         [ DRec.hasValue BaseTypes.Inty >> Expect.equal False
                         , DRec.hasValue BaseTypes.Floaty >> Expect.equal False
-                        , DRec.errorMessages >> Expect.equal (Just "Validation failed, field: floaty | Validation failed, field: inty")
                         , DRec.fieldBuffer BaseTypes.Floaty >> Expect.equal (Just "31a")
                         , DRec.fieldBuffer BaseTypes.Inty >> Expect.equal (Just "3.1")
                         , DRec.isValid >> Expect.equal False
-                        , DRec.fieldError BaseTypes.Floaty >> Expect.equal (Just (ValidationFailed "Validation failed, field: floaty"))
-                        , DRec.fieldError BaseTypes.Inty >> Expect.equal (Just (ValidationFailed "Validation failed, field: inty"))
+                        , DRec.fieldError BaseTypes.Floaty >> Expect.equal (Just ValidationFailed)
+                        , DRec.fieldError BaseTypes.Inty >> Expect.equal (Just ValidationFailed)
                         ]
                         drec
             ]
