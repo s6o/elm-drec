@@ -188,9 +188,12 @@ viewEntry field ( entry, merror ) =
             [ style "color" "#A00000"
             , style "min-height" "25px"
             ]
-            [ merror
-                |> DRec.isInvalid
-                |> Maybe.withDefault ""
+            [ (if DRec.isInvalid merror then
+                "Incorrect value"
+
+               else
+                ""
+              )
                 |> text
             ]
         ]

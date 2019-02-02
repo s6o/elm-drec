@@ -7,7 +7,7 @@ module BaseRecord exposing
     , schema
     )
 
-import DRec exposing (DField, DRec, DType(..), field, fieldWithMessage)
+import DRec exposing (DField, DRec, DType(..), field)
 import Dict
 
 
@@ -29,7 +29,7 @@ schema : BaseRecord
 schema =
     DRec.initWithIndent 4
         |> field Checky DBool
-        |> fieldWithMessage Booly DBool "Accepted values are: True, False"
+        |> field Booly DBool
         |> field Chary DChar
         |> field Floaty DFloat
         |> field Inty DInt
