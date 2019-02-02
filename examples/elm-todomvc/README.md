@@ -14,7 +14,6 @@ All of the Elm code lives in `src/Main.elm` and relies on the [elm/html][html] a
 
 * Yarn (and Node)
 * PostgreSQL
-* Nginx
 
 ### Get Elm
 
@@ -22,27 +21,10 @@ All of the Elm code lives in `src/Main.elm` and relies on the [elm/html][html] a
 yarn install
 ```
 
-### TodoMVC Build Instructions
-
-Run the following command from the root of this project:
-
-```bash
-yarn elm make src/Main.elm --output=elm.js
-```
-
-### Configure Nginx
-
-Deploy the provided `elm-drec-todomvc.conf` in your nginx configuration directory
-e.g. `servers/` (macOS) or `conf.d/` (linux).
-
-Alternatively, copy the contents of `elm-drec-todomvc.conf` into your `nging.conf`
-alongside with other _server_ configurations.
-
-The application is configured to be run on [localhost:8002](http://localhost:8002)
-
 ### Configure PostgreSQL database
 
-Start the `psql` interactive terminal from the project directory so that you can create the database and import the schema with less typing
+Start the `psql` interactive terminal from the project directory so that you can
+create the database and import the schema with less typing
 
 ```bash
 psql -U postgres
@@ -107,4 +89,16 @@ The resulting log file `postgrest.log` will be created in the project directory.
 
 ### Open the application in browser
 
-[localhost:8002](http://localhost:8002)
+Run the following command from the root of this project:
+
+```bash
+yarn elm reactor
+```
+
+Now open [elm-todomvc-postgrest](http://localhost:8000/src/Main.elm) at
+
+```text
+http://localhost:8000/src/Main.elm
+```
+
+in your browser.

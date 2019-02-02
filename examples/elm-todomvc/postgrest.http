@@ -1,12 +1,12 @@
 ### Test PostgREST (via VSCode - REST Client extension)
 
-GET http://localhost:8002/api/model HTTP/1.1
+GET http://localhost:3000/model HTTP/1.1
 Accept: application/vnd.pgrst.object+json
 Accept: application/json
 
 ###
 
-PATCH http://localhost:8002/api/model HTTP/1.1
+PATCH http://localhost:3000/model HTTP/1.1
 Accept: application/vnd.pgrst.object+json
 Accept: application/json
 Content-Type: application/json
