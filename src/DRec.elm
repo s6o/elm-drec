@@ -1,7 +1,7 @@
 module DRec exposing
     ( DType(..), DValue(..), DRec, DSchema, DField, DError(..)
     , init, initWithIndent, initWith, field
-    , clear, setWith, update, validators
+    , clear, setWith, update
     , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt
     , setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
     , decoder, decodeValue, decodeString, encode, stringify
@@ -42,7 +42,7 @@ values in a record's member fields.
 Every time a value is set it goes through an input buffer, buffer validation,
 error/success chain.
 
-@docs clear, setWith, update, validators
+@docs clear, setWith, update
 
 
 ### Convenience functions
@@ -676,21 +676,15 @@ setWithP fld toValue val (DRec r) =
                     )
 
 
-{-| Update a `DRec a` member via (default) validator function `String -> Maybe (DField a)`.
+{-| Update a `DRec a` member via default validator function `String -> Maybe (DField a)`.
 
 The `update` is the opposite of `retrieve` for working with text based HTML form inputs.
+It is also a convenience function, for custom validators use `setWith`.
 
 -}
 update : a -> String -> DRec a -> DRec a
 update adt str (DRec r) =
     setWith adt (selectValidator adt (DRec r)) str (DRec r)
-
-
-{-| Override default validators for `update` for specified fields.
--}
-validators : List ( a, String -> Maybe (DField a) ) -> DRec a -> DRec a
-validators lfns (DRec r) =
-    DRec r
 
 
 {-| @private
