@@ -1,4 +1,4 @@
-module Main exposing (Entry, Model, Msg(..), emptyModel, infoFooter, init, main, newEntry, onEnter, update, updateWithStorage, view, viewControls, viewControlsClear, viewControlsCount, viewControlsFilters, viewEntries, viewEntry, viewInput, viewKeyedEntry, visibilitySwap)
+module Main exposing (Msg(..), infoFooter, init, main, onEnter, update, updateWithStorage, view, viewControls, viewControlsClear, viewControlsCount, viewControlsFilters, viewEntries, viewEntry, viewInput, viewKeyedEntry, visibilitySwap)
 
 {-| TodoMVC implemented in Elm with PostgREST, using plain HTML and CSS for rendering.
 
@@ -15,7 +15,7 @@ this in <http://guide.elm-lang.org/architecture/index.html>
 
 import Browser
 import Browser.Dom as Dom
-import DRec exposing (DRec, DType(..), DValue(..), field, schema)
+import DRec
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -24,6 +24,7 @@ import Html.Lazy exposing (lazy, lazy2)
 import Http
 import Json.Decode as Json
 import Json.Encode
+import Model exposing (Entry, Fields(..), Model, emptyModel, newEntry)
 import Task
 
 
@@ -107,61 +108,20 @@ setStorage model =
 -- The full application state of our todo app.
 
 
-type Fields
-    = Uid
-    | Field
-    | Visibility
-    | Entries
-    | Description -- entry record
-    | Completed
-    | Editing
-    | Id
-
-
-{-| DRec record definition for an `Entry`.
--}
-entrySchema : DRec Fields
-entrySchema =
-    DRec.init
-        |> field Description DString
-        |> field Completed DBool
-        |> field Editing DBool
-        |> field Id DInt
-
-
-{-| DRec record definition for the `Model`.
--}
-modelSchema : DRec Fields
-modelSchema =
-    DRec.init
-        |> field Uid DInt
-        |> field Field DString
-        |> field Visibility DString
-        |> field Entries (DList (VDRec <| schema entrySchema))
-
-
-type alias Model =
-    DRec Fields
-
-
-type alias Entry =
-    DRec Fields
-
-
 {-| Helper to access DRec based `Entry` and `Model` members.
 -}
 get :
-    { entries : DRec Fields -> List (DRec Fields)
-    , field : DRec Fields -> String
-    , uid : DRec Fields -> Int
-    , visibility : DRec Fields -> String
-    , description : DRec Fields -> String
-    , completed : DRec Fields -> Bool
-    , editing : DRec Fields -> Bool
-    , id : DRec Fields -> Int
+    { entries : Model -> List Entry
+    , field : Model -> String
+    , uid : Model -> Int
+    , visibility : Model -> String
+    , description : Entry -> String
+    , completed : Entry -> Bool
+    , editing : Entry -> Bool
+    , id : Entry -> Int
     }
 get =
-    { entries = DRec.get Entries >> DRec.toList DRec.toDRec >> Result.withDefault []
+    { entries = DRec.getWith Entries (DRec.toList DRec.toDRec) []
     , field = DRec.get Field >> DRec.toString >> Result.withDefault ""
     , uid = DRec.get Uid >> DRec.toInt >> Result.withDefault 0
     , visibility = DRec.get Visibility >> DRec.toString >> Result.withDefault "All"
@@ -170,24 +130,6 @@ get =
     , editing = DRec.get Editing >> DRec.toBool >> Result.withDefault False
     , id = DRec.get Id >> DRec.toInt >> Result.withDefault 0
     }
-
-
-emptyModel : Model
-emptyModel =
-    modelSchema
-        |> DRec.setList Entries DRec.fromDRec []
-        |> DRec.setString Visibility "All"
-        |> DRec.setString Field ""
-        |> DRec.setInt Uid 0
-
-
-newEntry : String -> Int -> Entry
-newEntry desc id =
-    entrySchema
-        |> DRec.setString Description desc
-        |> DRec.setBool Completed False
-        |> DRec.setBool Editing False
-        |> DRec.setInt Id id
 
 
 init : ( Model, Cmd Msg )
