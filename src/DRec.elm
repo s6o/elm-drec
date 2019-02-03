@@ -5,7 +5,9 @@ module DRec exposing
     , setArray, setBool, setChar, setCharCode, setDRec, setFloat, setInt
     , setJson, setList, setMaybe, setPosix, setPosixEpoch, setString
     , decoder, decodeValue, decodeString, encode, stringify
-    , asBool, get, fieldNames, retrieve, schema
+    , asBool, get, getWith, fieldNames, retrieve, schema
+    , getArray, getBool, getChar, getCharCode, getDRec, getFloat, getInt
+    , getJson, getList, getMaybe, getPosix, getPosixEpoch, getString
     , fieldBuffer, fieldError, isDecodingFailure, isMissing, isInvalid
     , hasSchema, hasValue, isEmpty, isValid, isValidWith
     , fromArray, fromBool, fromChar, fromCharCode, fromDRec, fromFloat, fromInt
@@ -63,7 +65,13 @@ Create decoders and encoders or a JSON string, based on defined schema.
 
 # Query
 
-@docs asBool, get, fieldNames, retrieve, schema
+@docs asBool, get, getWith, fieldNames, retrieve, schema
+
+
+## Get helper functions
+
+@docs getArray, getBool, getChar, getCharCode, getDRec, getFloat, getInt
+@docs getJson, getList, getMaybe, getPosix, getPosixEpoch, getString
 
 
 ## Field error helper functions
@@ -808,61 +816,19 @@ fromUnwrap default mdfa =
 -- QUERY
 
 
-{-| Query field's input buffer.
+{-| Helper to reverse `Debug.toString` on `Bool` results: 'False' or 'True'.
 -}
-fieldBuffer : a -> DRec a -> Maybe String
-fieldBuffer adt (DRec r) =
-    Dict.get (recase adt (DRec r)) r.buffers
+asBool : String -> Maybe Bool
+asBool input =
+    case input of
+        "False" ->
+            Just False
 
-
-{-| Query error message for a field.
--}
-fieldError : a -> DRec a -> Maybe DError
-fieldError adt (DRec r) =
-    Dict.get (recase adt (DRec r)) r.errors
-
-
-{-| Get field names in the order they were defined.
--}
-fieldNames : DRec a -> List a
-fieldNames (DRec r) =
-    r.fields
-
-
-{-| Check if specified `DError` is `DecodingFailed String`, return its message otherwise `Noting`.
--}
-isDecodingFailure : Maybe DError -> Maybe String
-isDecodingFailure mde =
-    case mde of
-        Just (DecodingFailed msg) ->
-            Just msg
+        "True" ->
+            Just True
 
         _ ->
             Nothing
-
-
-{-| Check specified `DError` is `MissingValue`.
--}
-isMissing : Maybe DError -> Bool
-isMissing mde =
-    case mde of
-        Just MissingValue ->
-            True
-
-        _ ->
-            False
-
-
-{-| Check specified `DError` is `ValidationFailed`.
--}
-isInvalid : Maybe DError -> Bool
-isInvalid mde =
-    case mde of
-        Just ValidationFailed ->
-            True
-
-        _ ->
-            False
 
 
 {-| For a valid field defined in schema return a value/type mapping.
@@ -898,19 +864,104 @@ get adt (DRec r) =
                     Ok dfield
 
 
-{-| Helper to reverse `Debug.toString` on `Bool` results: 'False' or 'True'.
+{-| Convenience wrapper around `get` and a `to*` function with a default value.
 -}
-asBool : String -> Maybe Bool
-asBool input =
-    case input of
-        "False" ->
-            Just False
+getWith : a -> (Result DError (DField a) -> Result DError b) -> b -> DRec a -> b
+getWith adt toFn default drec =
+    get adt drec
+        |> toFn
+        |> Result.withDefault default
 
-        "True" ->
-            Just True
 
-        _ ->
-            Nothing
+{-| Get as `Array b` with a default mapper and default value.
+-}
+getArray : a -> (Result DError (DField a) -> Result DError b) -> Array b -> DRec a -> Array b
+getArray adt mapper default drec =
+    getWith adt (toArray mapper) default drec
+
+
+{-| Get as `Bool` with a default value.
+-}
+getBool : a -> Bool -> DRec a -> Bool
+getBool adt default drec =
+    getWith adt toBool default drec
+
+
+{-| Get as `Char` with a default value.
+-}
+getChar : a -> Char -> DRec a -> Char
+getChar adt default drec =
+    getWith adt toChar default drec
+
+
+{-| Get as `Int` representing a character code and with a default value.
+-}
+getCharCode : a -> Int -> DRec a -> Int
+getCharCode adt default drec =
+    getWith adt toCharCode default drec
+
+
+{-| Get as `DRec a` with a default value.
+-}
+getDRec : a -> DRec a -> DRec a -> DRec a
+getDRec adt default drec =
+    getWith adt toDRec default drec
+
+
+{-| Get as `Float` with a default value.
+-}
+getFloat : a -> Float -> DRec a -> Float
+getFloat adt default drec =
+    getWith adt toFloat default drec
+
+
+{-| Get as `Int` with a default value.
+-}
+getInt : a -> Int -> DRec a -> Int
+getInt adt default drec =
+    getWith adt toInt default drec
+
+
+{-| Get as `Json.Encode.Value` with default value.
+-}
+getJson : a -> Json.Encode.Value -> DRec a -> Json.Encode.Value
+getJson adt default drec =
+    getWith adt toJson default drec
+
+
+{-| Get as `List b` with a default mapper and default value.
+-}
+getList : a -> (Result DError (DField a) -> Result DError b) -> List b -> DRec a -> List b
+getList adt mapper default drec =
+    getWith adt (toList mapper) default drec
+
+
+{-| Get as `Maybe b` with a default mapper and default value.
+-}
+getMaybe : a -> (Result DError (DField a) -> Result DError b) -> Maybe b -> DRec a -> Maybe b
+getMaybe adt mapper default drec =
+    getWith adt (toMaybe mapper) default drec
+
+
+{-| Get as `Posix`with a default value.
+-}
+getPosix : a -> Posix -> DRec a -> Posix
+getPosix adt default drec =
+    getWith adt toPosix default drec
+
+
+{-| Get as `Int` representing an epoch in milliseconds and with a default value.
+-}
+getPosixEpoch : a -> Int -> DRec a -> Int
+getPosixEpoch adt default drec =
+    getWith adt toPosixEpoch default drec
+
+
+{-| Get as `String` with a default value.
+-}
+getString : a -> String -> DRec a -> String
+getString adt default drec =
+    getWith adt toString default drec
 
 
 {-| Call `get` and convert its value to String, return a tuple with
@@ -978,6 +1029,63 @@ dfieldToString dfield =
 
         DString_ s ->
             s
+
+
+{-| Query field's input buffer.
+-}
+fieldBuffer : a -> DRec a -> Maybe String
+fieldBuffer adt (DRec r) =
+    Dict.get (recase adt (DRec r)) r.buffers
+
+
+{-| Query error message for a field.
+-}
+fieldError : a -> DRec a -> Maybe DError
+fieldError adt (DRec r) =
+    Dict.get (recase adt (DRec r)) r.errors
+
+
+{-| Get field names in the order they were defined.
+-}
+fieldNames : DRec a -> List a
+fieldNames (DRec r) =
+    r.fields
+
+
+{-| Check if specified `DError` is `DecodingFailed String`, return its message otherwise `Noting`.
+-}
+isDecodingFailure : Maybe DError -> Maybe String
+isDecodingFailure mde =
+    case mde of
+        Just (DecodingFailed msg) ->
+            Just msg
+
+        _ ->
+            Nothing
+
+
+{-| Check specified `DError` is `MissingValue`.
+-}
+isMissing : Maybe DError -> Bool
+isMissing mde =
+    case mde of
+        Just MissingValue ->
+            True
+
+        _ ->
+            False
+
+
+{-| Check specified `DError` is `ValidationFailed`.
+-}
+isInvalid : Maybe DError -> Bool
+isInvalid mde =
+    case mde of
+        Just ValidationFailed ->
+            True
+
+        _ ->
+            False
 
 
 {-| Check if a schema has been specified.
