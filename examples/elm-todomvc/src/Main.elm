@@ -122,13 +122,13 @@ get :
     }
 get =
     { entries = DRec.getWith Entries (DRec.toList DRec.toDRec) []
-    , field = DRec.get Field >> DRec.toString >> Result.withDefault ""
-    , uid = DRec.get Uid >> DRec.toInt >> Result.withDefault 0
-    , visibility = DRec.get Visibility >> DRec.toString >> Result.withDefault "All"
-    , description = DRec.get Description >> DRec.toString >> Result.withDefault ""
-    , completed = DRec.get Completed >> DRec.toBool >> Result.withDefault True
-    , editing = DRec.get Editing >> DRec.toBool >> Result.withDefault False
-    , id = DRec.get Id >> DRec.toInt >> Result.withDefault 0
+    , field = DRec.getString Field ""
+    , uid = DRec.getInt Uid 0
+    , visibility = DRec.getString Visibility "All"
+    , description = DRec.getString Description ""
+    , completed = DRec.getBool Completed True
+    , editing = DRec.getBool Editing False
+    , id = DRec.getInt Id 0
     }
 
 
